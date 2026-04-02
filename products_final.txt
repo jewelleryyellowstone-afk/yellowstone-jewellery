@@ -1,0 +1,26 @@
+Fetching products...
+Total Products in DB: 17
+Summary:
+- Active (explicit true): 17
+- Inactive (explicit false): 0
+- Legacy (undefined, treated as active): 0
+- Total Visible to Public: 17
+Sample Product Data: {
+  "featured": true,
+  "originalPrice": 35000,
+  "price": 32999,
+  "stock": 50,
+  "images": [
+    "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/products%2F1768292371922-13.png?alt=media&token=fca65417-06ac-4331-8679-b5eea374f454",
+    "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/products%2F1768292371936-14.png?alt=media&token=09363fce-06b3-4d29-bd62-3bab4517f7a7",
+    "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/products%2F1768292371937-15.png?alt=media&token=26389d9b-686c-4e56-94c9-34b697ba95c1",
+    "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/products%2F1768292371938-20.png?alt=media&token=5dc2b317-086d-49a1-9c4e-0b7434da811d"
+  ],
+  "createdAt": "2026-01-13T08:22:24.434Z",
+  "category": "Sets and Combos",
+  "name": "Traditional Double Chain Black Bead Mangalsutra with Stone & Pearl Pendant",
+  "salesCount": 0,
+  "updatedAt": "2026-01-13T08:22:24.434Z",
+  "isActive": true,
+  "description": "Celebrate the bond of love with this exquisite Artificial Mangalsutra. Perfectly blending tradition with contemporary fashion, this piece features a stunning diamond-look pendant that adds a touch of elegance to any outfit, from sarees to salwar suits.\n\nDesign & Craftsmanship:\n\nThe Pendant: A beautiful open-work floral/butterfly motif studded with sparkling Cubic Zirconia (AD) stones that mimic the shine of real diamonds. It is finished with three graceful pearl-like drops that add movement and feminine charm.\n\nThe Chain: Features a classic double-strand design with traditional black beads (auspicious for married women) interspersed with gold-tone spacers, offering a rich, traditional look.\n\nMaterial & Finish: Crafted from high-quality copper alloy with a premium gold plating. The stones are high-grade American Diamonds (AD) set to ensure a lasting shine. Note: This is fashion jewellery, not real gold.\n\nOccasion: Lightweight and comfortable, this Mangalsutra is perfect for daily office wear, small family gatherings, or casual outings. It provides the heavy look of gold without the weight or cost.\n\nKey Features:\n\nDiamond-Like Shine: High-quality CZ/AD stones.\n\nElegant Pearls: Three hanging faux pearls for a classic touch.\n\nSecure & Durable: High-quality plating to resist tarnishing with proper care.\n\nAdjustable: Comes with a back chain/hook for easy size adjustment."
+}

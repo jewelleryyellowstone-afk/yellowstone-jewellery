@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: Check if user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper: Check if user is the hardcoded Admin
+    // Using email verification is more secure than relying on a potentially spoofable document field
+    function isAdmin() {
+      return isSignedIn() && 
+        (request.auth.token.email.lower() == 'jewellery.yellowstone@gmail.com');
+    }
+    
+    // Helper: Check if user owns the document (by userId field)
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Users collection
+    // - Authenticated users can read/write their own data
+    // - Admins can read/delete any user
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Allow update if owner OR admin. 
+      // Note: Admin status is determined by email in rules, so spoofing the 'isAdmin' field in the doc won't grant actual access.
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+      
+      // Addresses subcollection
+      match /addresses/{addressId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+    
+    // Products collection 
+    // - Public read for storefront
+    // - Admin only for management
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Categories collection
+    // - Public read for storefront
+    // - Admin only for management
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Orders collection
+    match /orders/{orderId} {
+      // Consumers can read their own orders. Admins can read all.
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      
+      // Guest checkout requires public creation access. 
+      // We rely on backend (or Cloud Functions) to validate data if strict schema needed.
+      allow create: if true;
+      
+      // Only admins can update orders (e.g. status changes)
+      allow update: if isAdmin();
+      
+      // Only admins can delete orders
+      allow delete: if isAdmin();
+    }
+    
+    // Payments collection - Strictly Admin only
+    // Contains sensitive transaction data
+    match /payments/{paymentId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Shipments collection
+    // - Users can read their tracking info (if linked to them? currently logic matches orders)
+    // - Admin manages shipments
+    match /shipments/{shipmentId} {
+      allow read: if isSignedIn(); // Broad read for now, usually fetched by admin or user via order
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Banners collection - Public read, admin write
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Settings collection - Granular access control
+    match /settings/store {
+      allow read: if true;
+      allow create, update: if isAdmin();
+    }
+    
+    match /settings/payment {
+      allow read, write: if isAdmin();
+    }
+    
+    match /settings/logistics {
+      allow read, write: if isAdmin();
+    }
+    
+    // Reports collection - Strictly Admin only
+    match /reports/{reportId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Discounts collection (used by app)
+    match /discounts/{discountId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Coupons collection - (Start Legacy)
+    match /coupons/{couponId} {
+      // Public needs to read coupons to validate them during checkout
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

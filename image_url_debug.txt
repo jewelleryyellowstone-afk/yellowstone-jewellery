@@ -1,0 +1,8 @@
+Fetching product by ID...
+Product Found: Classic Braided Center Silver Creoles - Gold Plated Polish Finish  (ID: xVBgTgyVbyQ4VOARvzMc)
+Images Array: [
+  "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/products%2F1768291736617-5.png?alt=media&token=c0bc1f38-92e0-40bc-a828-ea08f7f7b203",
+  "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/products%2F1768291736619-6.png?alt=media&token=d272601a-98d4-41c2-b237-2990297c0e86",
+  "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/products%2F1768291736620-7.png?alt=media&token=3e65cb07-287e-43c8-8a56-cf8f671ecf5b",
+  "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/products%2F1768291736621-8.png?alt=media&token=418e4917-d24e-4257-9b24-abc52147a239"
+]
