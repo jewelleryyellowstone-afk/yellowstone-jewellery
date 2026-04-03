@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ui/ProductCard';
 import Button from '@/components/ui/Button';
 import { Filter, SlidersHorizontal, X } from 'lucide-react';
-import { getProducts } from '@/lib/firebase/firestore';
+import { getProducts } from '@/lib/supabase/db';
 
 function ProductsContent() {
     const searchParams = useSearchParams();
@@ -33,10 +33,10 @@ function ProductsContent() {
 
         // Sort options
         const sortOptions = {
-            newest: { orderByField: 'createdAt', orderDirection: 'desc' },
+            newest: { orderByField: 'created_at', orderDirection: 'desc' },
             priceLow: { orderByField: 'price', orderDirection: 'asc' },
             priceHigh: { orderByField: 'price', orderDirection: 'desc' },
-            popular: { orderByField: 'salesCount', orderDirection: 'desc' },
+            popular: { orderByField: 'sales_count', orderDirection: 'desc' },
         };
 
         const { data } = await getProducts(filterArray, {
@@ -60,8 +60,8 @@ function ProductsContent() {
         }
 
         // Apply Status Filter Client-Side (Legacy Support)
-        // Show product if isActive is true OR undefined (legacy), hide ONLY if explicitly false
-        filtered = filtered.filter(p => p.isActive !== false);
+        // Show product if is_active is true OR undefined (legacy), hide ONLY if explicitly false
+        filtered = filtered.filter(p => p.is_active !== false);
 
         setProducts(filtered);
         setLoading(false);

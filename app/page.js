@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ChevronRight, ShieldCheck, RotateCcw, Truck } from 'lucide-react';
 import ProductCard from '@/components/ui/ProductCard';
 import Button from '@/components/ui/Button';
-import { getProducts, getCategories } from '@/lib/firebase/firestore';
+import { getProducts, getCategories } from '@/lib/supabase/db';
 
 export default function HomePage() {
     const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -18,7 +18,7 @@ export default function HomePage() {
             // Load latest products (replacing 'featured' filter to show all)
             const { data: products } = await getProducts(
                 [], // No filter, just get all/latest
-                { limitCount: 8, orderByField: 'createdAt', orderDirection: 'desc' }
+                { limitCount: 8, orderByField: 'created_at', orderDirection: 'desc' }
             );
 
             // Load categories
@@ -40,7 +40,7 @@ export default function HomePage() {
                 {/* Background Image */}
                 <div className="absolute inset-0 z-0">
                     <img
-                        src="https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/Cover%20Image%2Fcover%20page.png?alt=media&token=fdfa5155-4171-414d-8dab-63f8d9036b8d"
+                        src="/hero-banner.jpg"
                         alt="YellowStone Jewellery"
                         className="w-full h-full object-cover"
                     />

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { seedCategories, seedProducts } from '@/lib/data/seedData';
-import { createDocument, getAllDocuments } from '@/lib/firebase/firestore';
+import { createDocument, getAllDocuments } from '@/lib/supabase/db';
 
 export async function POST(request) {
     try {

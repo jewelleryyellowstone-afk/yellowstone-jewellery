@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Package, MapPin, CreditCard, User, Phone, Mail, TruckIcon } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { getDocument, updateDocument } from '@/lib/firebase/firestore';
+import { getDocument, updateDocument } from '@/lib/supabase/db';
+import { getIdToken } from '@/lib/supabase/auth';
 import { formatPrice, formatDateTime, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils/format';
 
 export default function OrderDetailPage() {
@@ -54,9 +55,13 @@ export default function OrderDetailPage() {
 
             if (newStatus === 'shipped' || newStatus === 'delivered') {
                 try {
+                    const token = await getIdToken();
                     await fetch('/api/notifications', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
                         body: JSON.stringify({ orderId: params.id, type: `order_${newStatus}` }),
                     });
                     alert(`Order status updated to ${newStatus} and notification sent.`);
@@ -83,19 +88,19 @@ export default function OrderDetailPage() {
 
         setUpdating(true);
         const { error } = await updateDocument('orders', params.id, {
-            paymentStatus: 'refunded',
-            refundAmount: parseFloat(refundAmount),
-            refundReason: refundReason,
-            refundedAt: new Date().toISOString(),
+            payment_status: 'refunded',
+            refund_amount: parseFloat(refundAmount),
+            refund_reason: refundReason,
+            refunded_at: new Date().toISOString(),
             status: 'cancelled'
         });
 
         if (!error) {
             setOrder({
                 ...order,
-                paymentStatus: 'refunded',
-                refundAmount: parseFloat(refundAmount),
-                refundReason: refundReason,
+                payment_status: 'refunded',
+                refund_amount: parseFloat(refundAmount),
+                refund_reason: refundReason,
                 status: 'cancelled'
             });
             setShowRefundModal(false);
@@ -111,16 +116,16 @@ export default function OrderDetailPage() {
 
         setUpdating(true);
         const { error } = await updateDocument('orders', params.id, {
-            paymentStatus: 'paid',
-            paidAt: new Date().toISOString(),
-            paymentId: 'COD_RECEIVED_' + new Date().getTime() // internal tracking
+            payment_status: 'paid',
+            paid_at: new Date().toISOString(),
+            payment_id: 'COD_RECEIVED_' + new Date().getTime() // internal tracking
         });
 
         if (!error) {
             setOrder({
                 ...order,
-                paymentStatus: 'paid',
-                paidAt: new Date().toISOString(),
+                payment_status: 'paid',
+                paid_at: new Date().toISOString(),
             });
             alert('Payment marked as RECEIVED successfully');
         } else {
@@ -139,11 +144,11 @@ export default function OrderDetailPage() {
         try {
             const shipmentPayload = {
                 provider: 'Manual',
-                courierName: shipmentData.courierName,
-                awbCode: shipmentData.trackingNumber,
-                trackingUrl: shipmentData.trackingUrl || '',
-                shipmentId: `MANUAL-${Date.now()}`,
-                shippedAt: new Date().toISOString()
+                courier_name: shipmentData.courierName,
+                awb_code: shipmentData.trackingNumber,
+                tracking_url: shipmentData.trackingUrl || '',
+                shipment_id: `MANUAL-${Date.now()}`,
+                shipped_at: new Date().toISOString()
             };
 
             // Update Firestore directly from client (bypassing server-side Admin SDK issues on localhost)
@@ -160,9 +165,13 @@ export default function OrderDetailPage() {
 
             // Trigger notification (best effort)
             try {
+                const token = await getIdToken();
                 await fetch('/api/notifications', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ orderId: params.id, type: 'order_shipped' }),
                 });
             } catch (e) {
@@ -225,21 +234,21 @@ export default function OrderDetailPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-neutral-500">Courier</p>
-                                    <p className="font-medium">{order.logistics.courierName}</p>
+                                    <p className="font-medium">{order.logistics.courier_name}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-neutral-500">Tracking Number</p>
-                                    <p className="font-mono font-medium">{order.logistics.awbCode}</p>
+                                    <p className="font-mono font-medium">{order.logistics.awb_code}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-neutral-500">Shipped At</p>
-                                    <p className="font-medium">{formatDateTime(order.logistics.shippedAt)}</p>
+                                    <p className="font-medium">{formatDateTime(order.logistics.shipped_at)}</p>
                                 </div>
                             </div>
-                            {order.logistics.trackingUrl && (
+                            {order.logistics.tracking_url && (
                                 <div className="mt-4">
                                     <a
-                                        href={order.logistics.trackingUrl}
+                                        href={order.logistics.tracking_url}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1"
@@ -314,7 +323,7 @@ export default function OrderDetailPage() {
                             <div className="space-y-3">
                                 <div>
                                     <p className="text-sm text-neutral-500">Name</p>
-                                    <p className="font-medium">{order.customerName}</p>
+                                    <p className="font-medium">{order.customer_name}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-neutral-500">Email</p>
@@ -344,9 +353,9 @@ export default function OrderDetailPage() {
                                 Delivery Address
                             </h2>
                             <div className="text-neutral-700">
-                                <p className="mb-1">{order.shippingAddress?.address}</p>
-                                <p className="mb-1">{order.shippingAddress?.city}, {order.shippingAddress?.state}</p>
-                                <p className="font-medium">PIN: {order.shippingAddress?.pincode}</p>
+                                <p className="mb-1">{order.shipping_address?.address}</p>
+                                <p className="mb-1">{order.shipping_address?.city}, {order.shipping_address?.state}</p>
+                                <p className="font-medium">PIN: {order.shipping_address?.pincode}</p>
                             </div>
                         </div>
                     </div>
@@ -405,23 +414,23 @@ export default function OrderDetailPage() {
                         <div className="space-y-3">
                             <div>
                                 <p className="text-sm text-neutral-500">Payment Method</p>
-                                <p className="font-medium capitalize">{order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</p>
+                                <p className="font-medium capitalize">{order.payment_method === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-neutral-500">Payment Status</p>
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
-                                    {order.paymentStatus || 'pending'}
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(order.payment_status)}`}>
+                                    {order.payment_status || 'pending'}
                                 </span>
                             </div>
-                            {order.paymentId && (
+                            {order.payment_id && (
                                 <div>
                                     <p className="text-sm text-neutral-500">Transaction ID</p>
-                                    <p className="font-mono text-xs break-all">{order.paymentId}</p>
+                                    <p className="font-mono text-xs break-all">{order.payment_id}</p>
                                 </div>
                             )}
                         </div>
 
-                        {order.paymentStatus === 'paid' ? (
+                        {order.payment_status === 'paid' ? (
                             <div className="mt-4 pt-4 border-t border-neutral-100">
                                 <Button
                                     variant="outline"

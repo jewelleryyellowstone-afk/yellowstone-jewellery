@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, CreditCard, Check, X, AlertCircle, Download } from 'lucide-react';
-import { getAllDocuments } from '@/lib/firebase/firestore';
+import { getAllDocuments } from '@/lib/supabase/db';
 import { formatPrice, formatDateTime, getPaymentStatusColor, formatDate } from '@/lib/utils/format';
 import Button from '@/components/ui/Button';
 
@@ -18,22 +18,22 @@ export default function AdminPaymentsPage() {
 
     async function loadPayments() {
         const { data: ordersData } = await getAllDocuments('orders', {
-            orderByField: 'createdAt',
-            orderDirection: 'desc',
-            limitCount: 500, // Increased for better reporting
+            orderBy: 'created_at',
+            ascending: false,
+            limit: 500, // Increased for better reporting
         });
 
         // Transform orders to payment records
         const paymentRecords = (ordersData || []).map(order => ({
             id: order.id,
             orderId: order.id,
-            customerName: order.customerName,
+            customerName: order.customer_name,
             email: order.email,
             amount: order.subtotal,
-            status: order.paymentStatus || 'pending',
-            method: order.paymentMethod || 'online',
-            transactionId: order.transactionId || '-',
-            createdAt: order.createdAt,
+            status: order.payment_status || 'pending',
+            method: order.payment_method || 'online',
+            transactionId: order.payment_id || '-',
+            createdAt: order.created_at,
         }));
 
         setPayments(paymentRecords);
@@ -80,7 +80,7 @@ export default function AdminPaymentsPage() {
 
     const stats = {
         total: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
-        success: payments.filter(p => p.status === 'success').reduce((sum, p) => sum + (p.amount || 0), 0),
+        success: payments.filter(p => p.status === 'success' || p.status === 'paid').reduce((sum, p) => sum + (p.amount || 0), 0),
         pending: payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + (p.amount || 0), 0),
         failed: payments.filter(p => p.status === 'failed').length,
     };
@@ -167,6 +167,7 @@ export default function AdminPaymentsPage() {
                     >
                         <option value="all">All Status</option>
                         <option value="success">Success</option>
+                        <option value="paid">Paid</option>
                         <option value="pending">Pending</option>
                         <option value="failed">Failed</option>
                         <option value="refunded">Refunded</option>

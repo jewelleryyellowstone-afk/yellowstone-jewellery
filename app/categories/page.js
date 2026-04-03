@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getCategories } from '@/lib/firebase/firestore';
+import { getCategories } from '@/lib/supabase/db';
 import { Loader2 } from 'lucide-react';
 
 export default function CategoriesPage() {

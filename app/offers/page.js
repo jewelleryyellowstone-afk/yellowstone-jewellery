@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ProductCard from '@/components/ui/ProductCard';
-import { getProducts } from '@/lib/firebase/firestore';
+import { getProducts } from '@/lib/supabase/db';
 import { Loader2, Tag } from 'lucide-react';
 
 export default function OffersPage() {
@@ -18,7 +18,7 @@ export default function OffersPage() {
 
                 // Client-side filter for offers if backend flag doesn't exist
                 // Assuming 'salePrice' or 'discountPrice' exists, or we just show random selection as "Offers" for MVP
-                const offerProducts = data?.filter(p => p.salePrice && p.salePrice < p.price) || data?.slice(0, 6) || [];
+                const offerProducts = data?.filter(p => p.sale_price && p.sale_price < p.price) || data?.slice(0, 6) || [];
 
                 setProducts(offerProducts);
             } catch (error) {

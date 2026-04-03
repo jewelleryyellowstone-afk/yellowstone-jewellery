@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Upload, X, ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { createDocument, getAllDocuments } from '@/lib/firebase/firestore';
-import { uploadMultipleImages } from '@/lib/firebase/storage';
+import { createDocument, getAllDocuments } from '@/lib/supabase/db';
+import { uploadMultipleImages } from '@/lib/cloudinary/upload';
 
 export default function NewProductPage() {
     const router = useRouter();
@@ -18,11 +18,11 @@ export default function NewProductPage() {
         name: '',
         description: '',
         price: '',
-        originalPrice: '',
+        original_price: '',
         category: '',
         stock: '',
         featured: false,
-        isActive: true,
+        is_active: true,
     });
 
     useEffect(() => {
@@ -75,13 +75,13 @@ export default function NewProductPage() {
                 name: formData.name,
                 description: formData.description,
                 price: parseFloat(formData.price),
-                originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : parseFloat(formData.price),
+                original_price: formData.original_price ? parseFloat(formData.original_price) : parseFloat(formData.price),
                 category: formData.category,
                 stock: parseInt(formData.stock),
                 featured: formData.featured,
-                isActive: formData.isActive,
+                is_active: formData.is_active,
                 images: imageUrls,
-                salesCount: 0,
+                sales_count: 0,
             };
 
             const { id, error } = await createDocument('products', productData);
@@ -216,17 +216,17 @@ export default function NewProductPage() {
                         <Input
                             label="Original Price (Optional)"
                             type="number"
-                            value={formData.originalPrice}
-                            onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                            value={formData.original_price}
+                            onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
                             placeholder="1499"
                             helperText="For showing discounts"
                         />
                     </div>
 
-                    {formData.price && formData.originalPrice && parseFloat(formData.originalPrice) > parseFloat(formData.price) && (
+                    {formData.price && formData.original_price && parseFloat(formData.original_price) > parseFloat(formData.price) && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                             <p className="text-sm text-green-800">
-                                💰 Discount: {Math.round(((parseFloat(formData.originalPrice) - parseFloat(formData.price)) / parseFloat(formData.originalPrice)) * 100)}% OFF
+                                💰 Discount: {Math.round(((parseFloat(formData.original_price) - parseFloat(formData.price)) / parseFloat(formData.original_price)) * 100)}% OFF
                             </p>
                         </div>
                     )}
@@ -249,12 +249,12 @@ export default function NewProductPage() {
                     <div className="flex items-center gap-3">
                         <input
                             type="checkbox"
-                            id="isActive"
-                            checked={formData.isActive}
-                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                            id="is_active"
+                            checked={formData.is_active}
+                            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                             className="w-5 h-5 text-green-600 border-neutral-300 rounded focus:ring-green-500"
                         />
-                        <label htmlFor="isActive" className="text-sm font-medium text-neutral-700">
+                        <label htmlFor="is_active" className="text-sm font-medium text-neutral-700">
                             Active Status
                             <span className="block text-xs text-neutral-500 font-normal">Enable to show this product to customers</span>
                         </label>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// Force dynamic rendering - required for Firebase App Hosting / Cloud Functions
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 

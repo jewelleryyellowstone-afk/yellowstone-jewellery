@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Package, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { queryDocuments } from '@/lib/firebase/firestore';
+import { supabase } from '@/lib/supabase/client';
 import { formatPrice, formatDateTime, getOrderStatusColor } from '@/lib/utils/format';
 
 export default function CustomerOrdersPage() {
@@ -24,11 +24,7 @@ export default function CustomerOrdersPage() {
     }, [user, authLoading, router]);
 
     async function loadOrders() {
-        const { data } = await queryDocuments(
-            'orders',
-            [{ field: 'userId', operator: '==', value: user.uid }],
-            { orderByField: 'createdAt', orderDirection: 'desc' }
-        );
+        const { data } = await supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
         setOrders(data || []);
         setLoading(false);
     }
@@ -80,7 +76,7 @@ export default function CustomerOrdersPage() {
                                             </span>
                                         </div>
                                         <p className="text-sm text-neutral-500">
-                                            Placed on {formatDateTime(order.createdAt)}
+                                            Placed on {formatDateTime(order.created_at)}
                                         </p>
                                     </div>
                                     <div className="text-right">

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Minus, Plus, ShoppingCart, Share2, MapPin } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { getProductById } from '@/lib/firebase/firestore';
+import { getProductById } from '@/lib/supabase/db';
 import { useCart } from '@/lib/hooks/useCart';
 import { formatPrice, createWhatsAppLink } from '@/lib/utils/format';
 
@@ -108,9 +108,9 @@ export default function ProductDetailsClient({ productId }) {
                         />
 
                         {/* Discount Badge */}
-                        {product.originalPrice && product.originalPrice > product.price && (
+                        {product.original_price && product.original_price > product.price && (
                             <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full font-bold z-10">
-                                {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                                {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
                             </div>
                         )}
 
@@ -159,13 +159,13 @@ export default function ProductDetailsClient({ productId }) {
                             <span className="text-3xl font-bold text-neutral-900">
                                 {formatPrice(product.price)}
                             </span>
-                            {product.originalPrice && product.originalPrice > product.price && (
+                            {product.original_price && product.original_price > product.price && (
                                 <>
                                     <span className="text-xl text-neutral-500 line-through">
-                                        {formatPrice(product.originalPrice)}
+                                        {formatPrice(product.original_price)}
                                     </span>
                                     <span className="text-green-600 font-semibold">
-                                        Save {formatPrice(product.originalPrice - product.price)}
+                                        Save {formatPrice(product.original_price - product.price)}
                                     </span>
                                 </>
                             )}

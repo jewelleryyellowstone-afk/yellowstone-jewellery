@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import { signIn, signUp } from '@/lib/firebase/auth';
+import { signIn, signUp } from '@/lib/supabase/auth';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -15,7 +15,7 @@ export default function LoginPage() {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
-        displayName: '',
+        display_name: '',
     });
 
     const handleSubmit = async (e) => {
@@ -28,7 +28,7 @@ export default function LoginPage() {
                 const { error: signupError } = await signUp(
                     formData.email,
                     formData.password,
-                    formData.displayName
+                    formData.display_name
                 );
                 if (signupError) {
                     setError(signupError);
@@ -69,8 +69,8 @@ export default function LoginPage() {
                             <Input
                                 label="Full Name"
                                 type="text"
-                                value={formData.displayName}
-                                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                                value={formData.display_name}
+                                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                                 required
                             />
                         )}

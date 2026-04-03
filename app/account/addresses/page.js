@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Trash2, MapPin, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { getAllDocuments, createDocument, updateDocument, deleteDocument } from '@/lib/firebase/firestore';
+import { getAllDocuments, createDocument, updateDocument, deleteDocument } from '@/lib/supabase/db';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
@@ -24,7 +24,7 @@ export default function AddressesPage() {
         state: '',
         pincode: '',
         phone: '',
-        isDefault: false
+        is_default: false
     };
     const [formData, setFormData] = useState(initialFormState);
 
@@ -39,7 +39,9 @@ export default function AddressesPage() {
 
     async function loadAddresses() {
         if (!user) return;
-        const { data } = await getAllDocuments(`users/${user.uid}/addresses`);
+        const { data } = await getAllDocuments('addresses', { 
+            filters: [['user_id', user.id]] 
+        });
         setAddresses(data || []);
         setLoading(false);
     }
@@ -49,13 +51,16 @@ export default function AddressesPage() {
         setSubmitting(true);
 
         try {
-            const collectionPath = `users/${user.uid}/addresses`;
+            const addressData = {
+                ...formData,
+                user_id: user.id
+            };
 
             if (editingId) {
-                await updateDocument(collectionPath, editingId, formData);
+                await updateDocument('addresses', editingId, addressData);
                 alert('Address updated successfully');
             } else {
-                await createDocument(collectionPath, formData);
+                await createDocument('addresses', addressData);
                 alert('Address added successfully');
             }
 
@@ -75,7 +80,7 @@ export default function AddressesPage() {
         if (!confirm('Are you sure you want to delete this address?')) return;
 
         try {
-            await deleteDocument(`users/${user.uid}/addresses`, id);
+            await deleteDocument('addresses', id);
             loadAddresses();
         } catch (error) {
             console.error('Error deleting address:', error);

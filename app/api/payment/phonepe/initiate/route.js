@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDbAdmin, ensureInitialized } from '@/lib/firebase/admin';
-import { getPaymentSettings } from '@/lib/payment/settings';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -70,10 +69,6 @@ async function getPhonePeToken(clientId, clientSecret, clientVersion, environmen
 }
 
 export async function POST(request) {
-    // Hard init guard — ensure Firebase is ready before anything else
-    await ensureInitialized();
-    const db = await getDbAdmin();
-
     try {
         const body = await request.json();
         const { orderId, amount } = body;
@@ -84,16 +79,15 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
-        // --- 2. Read PhonePe credentials from Admin Settings (Firestore) ---
-        const settings = await getPaymentSettings();
-        
-        const clientId      = settings?.clientId?.trim();
-        const clientSecret  = settings?.clientSecret?.trim();
-        const clientVersion = settings?.clientVersion?.trim() || '1';
-        const environment   = settings?.environment?.trim().toLowerCase() || 'sandbox';
+        // --- 2. Read PhonePe credentials from Environment Variables ---
+        const environment = process.env.PHONEPE_ENVIRONMENT?.toLowerCase() === 'production' ? 'production' : 'sandbox';
+        const isProd = environment === 'production';
+        const clientId = isProd ? process.env.PHONEPE_PROD_CLIENT_ID?.trim() : process.env.PHONEPE_TEST_CLIENT_ID?.trim();
+        const clientSecret = isProd ? process.env.PHONEPE_PROD_CLIENT_SECRET?.trim() : process.env.PHONEPE_TEST_CLIENT_SECRET?.trim();
+        const clientVersion = isProd ? process.env.PHONEPE_PROD_CLIENT_VERSION?.trim() || '1' : process.env.PHONEPE_TEST_CLIENT_VERSION?.trim() || '1';
 
         if (!clientId || !clientSecret) {
-            console.error('[PhonePe] ❌ Missing PHONEPE credentials in Admin Settings');
+            console.error('[PhonePe] ❌ Missing PHONEPE credentials in environment variables');
             return NextResponse.json({
                 error: 'Payment gateway not configured. Contact support.',
             }, { status: 500 });
@@ -101,13 +95,13 @@ export async function POST(request) {
 
         if (!PHONEPE_V2_CONFIG[environment]) {
             return NextResponse.json({
-                error: `Invalid PHONEPE_ENVIRONMENT in Admin Settings: "${environment}"`,
+                error: `Invalid PHONEPE_ENVIRONMENT: "${environment}"`,
             }, { status: 500 });
         }
 
         // --- 3. Resolve redirect base URL ---
         const reqOrigin = new URL(request.url).origin;
-        const baseUrl = (reqOrigin && !reqOrigin.includes('localhost') && reqOrigin !== 'null')
+        const baseUrl = reqOrigin.includes('localhost')
             ? reqOrigin
             : (process.env.NEXT_PUBLIC_SITE_URL || reqOrigin);
 
@@ -121,10 +115,9 @@ export async function POST(request) {
         // --- 6. Get user data from order (optional, best-effort) ---
         let merchantUserId = `MUID_${orderId.slice(-8)}`;
         try {
-            const orderDoc = await db.collection('orders').doc(orderId).get();
-            if (orderDoc.exists) {
-                const od = orderDoc.data();
-                if (od.userId) merchantUserId = `MUID_${od.userId.slice(-10)}`;
+            const { data: orderDoc } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
+            if (orderDoc) {
+                if (orderDoc.user_id) merchantUserId = `MUID_${orderDoc.user_id.slice(-10)}`;
             }
         } catch (e) {
             console.warn('[PhonePe] Could not fetch order for user data:', e.message);
@@ -132,13 +125,11 @@ export async function POST(request) {
 
         // --- 7. Save transaction ID on order ---
         try {
-            await db.collection('orders').doc(orderId).update({
-                merchantTransactionId: merchantOrderId,
-                'payment.initiatedAt': new Date().toISOString(),
-                'payment.status':      'initiated',
-                'payment.provider':    'phonepe',
-                'payment.environment': environment,
-            });
+            await supabaseAdmin.from('orders').update({
+                merchant_transaction_id: merchantOrderId,
+                payment_status: 'initiated',
+                payment_provider: 'phonepe',
+            }).eq('id', orderId);
         } catch (e) {
             console.warn('[PhonePe] Could not update order:', e.message);
             // Non-fatal — continue with payment

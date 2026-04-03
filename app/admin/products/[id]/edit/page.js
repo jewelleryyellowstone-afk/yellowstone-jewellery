@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Upload, X, ArrowLeft, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { getDocument, updateDocument, getAllDocuments } from '@/lib/firebase/firestore';
-import { uploadMultipleImages, deleteMultipleImages } from '@/lib/firebase/storage';
+import { getDocument, updateDocument, getAllDocuments } from '@/lib/supabase/db';
+import { uploadMultipleImages, deleteMultipleImages } from '@/lib/cloudinary/upload';
 
 export default function EditProductPage() {
     const params = useParams();
@@ -21,11 +21,11 @@ export default function EditProductPage() {
         name: '',
         description: '',
         price: '',
-        originalPrice: '',
+        original_price: '',
         category: '',
         stock: '',
         featured: false,
-        isActive: true,
+        is_active: true,
     });
 
     useEffect(() => {
@@ -40,11 +40,11 @@ export default function EditProductPage() {
                 name: data.name || '',
                 description: data.description || '',
                 price: data.price?.toString() || '',
-                originalPrice: data.originalPrice?.toString() || '',
+                original_price: data.original_price?.toString() || '',
                 category: data.category || '',
                 stock: data.stock?.toString() || '',
                 featured: data.featured || false,
-                isActive: data.isActive !== undefined ? data.isActive : true,
+                is_active: data.is_active !== undefined ? data.is_active : true,
             });
             setExistingImages(data.images || []);
         }
@@ -103,11 +103,11 @@ export default function EditProductPage() {
                 name: formData.name,
                 description: formData.description,
                 price: parseFloat(formData.price),
-                originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : parseFloat(formData.price),
+                original_price: formData.original_price ? parseFloat(formData.original_price) : parseFloat(formData.price),
                 category: formData.category,
                 stock: parseInt(formData.stock),
                 featured: formData.featured,
-                isActive: formData.isActive,
+                is_active: formData.is_active,
                 images: allImages,
             };
 
@@ -273,8 +273,8 @@ export default function EditProductPage() {
                         <Input
                             label="Original Price (Optional)"
                             type="number"
-                            value={formData.originalPrice}
-                            onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                            value={formData.original_price}
+                            onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
                         />
                     </div>
                 </div>
@@ -294,12 +294,12 @@ export default function EditProductPage() {
                     <div className="flex items-center gap-3">
                         <input
                             type="checkbox"
-                            id="isActive"
-                            checked={formData.isActive}
-                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                            id="is_active"
+                            checked={formData.is_active}
+                            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                             className="w-5 h-5 text-green-600 border-neutral-300 rounded focus:ring-green-500"
                         />
-                        <label htmlFor="isActive" className="text-sm font-medium text-neutral-700">
+                        <label htmlFor="is_active" className="text-sm font-medium text-neutral-700">
                             Active Status
                             <span className="block text-xs text-neutral-500 font-normal">Enable to show this product to customers</span>
                         </label>

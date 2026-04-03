@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Filter, Eye, Package, Download } from 'lucide-react';
-import { getAllDocuments } from '@/lib/firebase/firestore';
+import { getAllDocuments } from '@/lib/supabase/db';
 import { formatPrice, formatDateTime, getOrderStatusColor, formatDate } from '@/lib/utils/format';
 import Button from '@/components/ui/Button';
 
@@ -19,7 +19,7 @@ export default function AdminOrdersPage() {
 
     async function loadOrders() {
         const { data } = await getAllDocuments('orders', {
-            orderByField: 'createdAt',
+            orderByField: 'created_at',
             orderDirection: 'desc',
             limitCount: 500, // Increased limit for better export utility
         });
@@ -29,7 +29,7 @@ export default function AdminOrdersPage() {
 
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
-            order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.id.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -46,17 +46,17 @@ export default function AdminOrdersPage() {
 
         const dataToExport = filteredOrders.map(order => ({
             'Order ID': order.id,
-            'Date': formatDate(order.createdAt),
-            'Customer Name': order.customerName,
+            'Date': formatDate(order.created_at),
+            'Customer Name': order.customer_name,
             'Email': order.email,
             'Phone': order.phone,
-            'Address': order.shippingAddress ? `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.pincode}` : '',
+            'Address': order.shipping_address ? `${order.shipping_address.address}, ${order.shipping_address.city}, ${order.shipping_address.state}, ${order.shipping_address.pincode}` : '',
             'Items Count': order.items?.length || 0,
             'Items Details': order.items?.map(i => `${i.name} (x${i.quantity})`).join('; ') || '',
             'Subtotal': order.subtotal || 0,
             'Status': order.status || 'pending',
-            'Payment Method': order.paymentMethod || '-',
-            'Tracking ID': order.logistics?.awbCode || ''
+            'Payment Method': order.payment_method || '-',
+            'Tracking ID': order.logistics?.awb_code || ''
         }));
 
         const fileName = `orders-export-${statusFilter}`;
@@ -213,12 +213,12 @@ export default function AdminOrdersPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div>
-                                                <p className="font-medium text-neutral-900">{order.customerName}</p>
+                                                <p className="font-medium text-neutral-900">{order.customer_name}</p>
                                                 <p className="text-sm text-neutral-500">{order.email}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-neutral-600">
-                                            {formatDateTime(order.createdAt)}
+                                            {formatDateTime(order.created_at)}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-neutral-600">
                                             {order.items?.length || 0} items

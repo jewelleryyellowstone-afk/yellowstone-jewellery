@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Download, TrendingUp, ShoppingBag, DollarSign, Users, RotateCcw } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { getAllDocuments } from '@/lib/firebase/firestore';
+import { getAllDocuments } from '@/lib/supabase/db';
 import { formatPrice, formatDate } from '@/lib/utils/format';
 
 import { RevenueChart, OrdersChart } from '@/components/admin/Charts';
@@ -30,9 +30,9 @@ export default function AdminReportsPage() {
         setLoading(true);
 
         const { data: ordersData } = await getAllDocuments('orders', {
-            orderByField: 'createdAt',
-            orderDirection: 'desc',
-            limitCount: 500,
+            orderBy: 'created_at',
+            ascending: false,
+            limit: 500,
         });
 
         const { data: productsData } = await getAllDocuments('products');
@@ -41,7 +41,7 @@ export default function AdminReportsPage() {
         cutoffDate.setDate(cutoffDate.getDate() - parseInt(dateRange));
 
         const filteredOrders = (ordersData || []).filter(order => {
-            const orderDate = new Date(order.createdAt);
+            const orderDate = new Date(order.created_at);
             return orderDate >= cutoffDate;
         });
 
@@ -57,9 +57,9 @@ export default function AdminReportsPage() {
         }
 
         filteredOrders.forEach(order => {
-            const dateStr = new Date(order.createdAt).toISOString().split('T')[0];
+            const dateStr = new Date(order.created_at).toISOString().split('T')[0];
             if (dailyData[dateStr]) {
-                const refund = order.refundAmount || 0;
+                const refund = order.refund_amount || 0;
                 dailyData[dateStr].revenue += (order.subtotal || 0) - refund;
                 dailyData[dateStr].orders += 1;
             }
@@ -71,18 +71,18 @@ export default function AdminReportsPage() {
 
         // ... existing stats calculation ...
         const totalRevenue = filteredOrders.reduce((sum, order) => {
-            const refund = order.refundAmount || 0;
+            const refund = order.refund_amount || 0;
             return sum + (order.subtotal || 0) - refund;
         }, 0);
 
-        const totalRefunds = filteredOrders.reduce((sum, order) => sum + (order.refundAmount || 0), 0);
+        const totalRefunds = filteredOrders.reduce((sum, order) => sum + (order.refund_amount || 0), 0);
         const totalOrders = filteredOrders.length;
         const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
         // ... top products calculation ...
         const productSales = {};
         filteredOrders.forEach(order => {
-            if (order.status !== 'cancelled' || order.paymentStatus === 'refunded') {
+            if (order.status !== 'cancelled' || order.payment_status === 'refunded') {
                 order.items?.forEach(item => {
                     if (!productSales[item.id]) {
                         productSales[item.id] = {
@@ -112,13 +112,13 @@ export default function AdminReportsPage() {
 
         const dataToExport = orders.map(order => ({
             'Order ID': order.id,
-            'Date': formatDate(order.createdAt),
-            'Customer Name': order.customerName,
+            'Date': formatDate(order.created_at),
+            'Customer Name': order.customer_name,
             'Email': order.email,
             'Phone': order.phone,
             'Status': order.status,
-            'Payment Method': order.paymentMethod,
-            'Payment Status': order.paymentStatus,
+            'Payment Method': order.payment_method,
+            'Payment Status': order.payment_status,
             'Items': order.items?.map(i => `${i.name} (x${i.quantity})`).join(', '),
             'Subtotal': order.subtotal,
             'Discount': order.discount || 0,

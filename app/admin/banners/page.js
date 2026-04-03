@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { Upload, X, Edit, Trash2, Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { getAllDocuments, createDocument, updateDocument, deleteDocument } from '@/lib/firebase/firestore';
-import { uploadImage, deleteImage } from '@/lib/firebase/storage';
+import { getAllDocuments, createDocument, updateDocument, deleteDocument } from '@/lib/supabase/db';
+import { uploadImage, deleteImage } from '@/lib/cloudinary/upload';
 
 export default function AdminBannersPage() {
     const [banners, setBanners] = useState([]);
@@ -18,7 +18,7 @@ export default function AdminBannersPage() {
     const [formData, setFormData] = useState({
         title: '',
         subtitle: '',
-        imageUrl: '',
+        image_url: '',
         link: '',
         order: 0,
         active: true,
@@ -30,8 +30,8 @@ export default function AdminBannersPage() {
 
     async function loadBanners() {
         const { data } = await getAllDocuments('banners', {
-            orderByField: 'order',
-            orderDirection: 'asc',
+            orderBy: 'order',
+            ascending: true,
         });
         setBanners(data || []);
         setLoading(false);
@@ -52,22 +52,22 @@ export default function AdminBannersPage() {
         setUploading(true);
 
         try {
-            let imageUrl = formData.imageUrl;
+            let image_url = formData.image_url;
 
             // Upload new image if selected
             if (imageFile) {
-                const { url, error } = await uploadImage(imageFile, 'banners/');
+                const { url, error } = await uploadImage(imageFile, 'banners');
                 if (error) {
                     alert('Failed to upload image: ' + error);
                     setUploading(false);
                     return;
                 }
-                imageUrl = url;
+                image_url = url;
             }
 
             const bannerData = {
                 ...formData,
-                imageUrl,
+                image_url,
             };
 
             if (editingId) {
@@ -90,24 +90,24 @@ export default function AdminBannersPage() {
         setFormData({
             title: banner.title || '',
             subtitle: banner.subtitle || '',
-            imageUrl: banner.imageUrl || '',
+            image_url: banner.image_url || '',
             link: banner.link || '',
             order: banner.order || 0,
             active: banner.active !== false,
         });
-        setImagePreview(banner.imageUrl || '');
+        setImagePreview(banner.image_url || '');
         setEditingId(banner.id);
         setShowForm(true);
     };
 
-    const handleDelete = async (id, imageUrl) => {
+    const handleDelete = async (id, image_url) => {
         if (!confirm('Are you sure you want to delete this banner?')) return;
 
         const { error } = await deleteDocument('banners', id);
         if (!error) {
-            // Optionally delete image from storage
-            if (imageUrl) {
-                await deleteImage(imageUrl);
+            // Optionally delete image from storage (if using cloudinary deleteImage needs signature or can just ignore)
+            if (image_url) {
+                await deleteImage(image_url);
             }
             setBanners(banners.filter(b => b.id !== id));
             alert('Banner deleted successfully');
@@ -115,7 +115,7 @@ export default function AdminBannersPage() {
     };
 
     const resetForm = () => {
-        setFormData({ title: '', subtitle: '', imageUrl: '', link: '', order: 0, active: true });
+        setFormData({ title: '', subtitle: '', image_url: '', link: '', order: 0, active: true });
         setImageFile(null);
         setImagePreview('');
         setEditingId(null);
@@ -243,8 +243,8 @@ export default function AdminBannersPage() {
                         <div key={banner.id} className="bg-white rounded-lg shadow-card overflow-hidden">
                             <div className="flex flex-col sm:flex-row">
                                 <div className="w-full sm:w-48 h-32 bg-neutral-100 flex-shrink-0">
-                                    {banner.imageUrl ? (
-                                        <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
+                                    {banner.image_url ? (
+                                        <img src={banner.image_url} alt={banner.title} className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-neutral-400">
                                             No image
@@ -277,7 +277,7 @@ export default function AdminBannersPage() {
                                                 <Edit className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(banner.id, banner.imageUrl)}
+                                                onClick={() => handleDelete(banner.id, banner.image_url)}
                                                 className="p-2 text-neutral-600 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                             >
                                                 <Trash2 className="w-4 h-4" />

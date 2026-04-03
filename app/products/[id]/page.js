@@ -1,5 +1,5 @@
 
-import { getProductById } from '@/lib/firebase/firestore';
+import { getProductById } from '@/lib/supabase/db';
 import ProductDetailsClient from './ProductDetailsClient';
 
 export async function generateMetadata({ params }) {

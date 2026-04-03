@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TrendingUp, ShoppingBag, Package, CreditCard } from 'lucide-react';
-import { getAllDocuments } from '@/lib/firebase/firestore';
+import { getAllDocuments } from '@/lib/supabase/db';
 import { formatPrice } from '@/lib/utils/format';
 
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { getAllDocuments, deleteDocument } from '@/lib/firebase/firestore';
+import { getAllDocuments, deleteDocument } from '@/lib/supabase/db';
 import { formatPrice } from '@/lib/utils/format';
 
 export default function AdminProductsPage() {
@@ -21,7 +21,7 @@ export default function AdminProductsPage() {
         console.log('AdminProductsPage: Loading products...');
         try {
             const { data, error } = await getAllDocuments('products', {
-                orderByField: 'createdAt',
+                orderByField: 'created_at',
                 orderDirection: 'desc',
                 limitCount: 100,
             });
@@ -156,8 +156,8 @@ export default function AdminProductsPage() {
                                         <td className="px-6 py-4">
                                             <div>
                                                 <p className="font-medium text-neutral-900">{formatPrice(product.price)}</p>
-                                                {product.originalPrice && product.originalPrice > product.price && (
-                                                    <p className="text-xs text-neutral-500 line-through">{formatPrice(product.originalPrice)}</p>
+                                                {product.original_price && product.original_price > product.price && (
+                                                    <p className="text-xs text-neutral-500 line-through">{formatPrice(product.original_price)}</p>
                                                 )}
                                             </div>
                                         </td>
@@ -174,7 +174,7 @@ export default function AdminProductsPage() {
                                                 }`}>
                                                 {product.featured ? 'Featured' : 'Regular'}
                                             </span>
-                                            {!product.isActive && (product.isActive !== undefined) && (
+                                            {!product.is_active && (product.is_active !== undefined) && (
                                                 <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-200 text-neutral-600">
                                                     Inactive
                                                 </span>

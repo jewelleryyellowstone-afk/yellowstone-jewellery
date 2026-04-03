@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createShipment } from '@/lib/logistics/shiprocket';
-import { getDocument, updateDocument } from '@/lib/firebase/firestore';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { sendNotification } from '@/lib/notifications/whatsapp';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request) {
     try {
@@ -14,8 +17,8 @@ export async function POST(request) {
             );
         }
 
-        // Get order details from Firestore
-        const { data: order } = await getDocument('orders', orderId);
+        // Get order details from Supabase
+        const { data: order } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
 
         if (!order) {
             return NextResponse.json(
@@ -27,16 +30,16 @@ export async function POST(request) {
         // Create shipment with Shiprocket
         const shipmentResult = await createShipment({
             orderId: order.id,
-            customerName: order.customerName,
+            customerName: order.customer_name,
             email: order.email,
             phone: order.phone,
-            address: order.shippingAddress.address,
-            city: order.shippingAddress.city,
-            state: order.shippingAddress.state,
-            pincode: order.shippingAddress.pincode,
+            address: order.shipping_address?.address,
+            city: order.shipping_address?.city,
+            state: order.shipping_address?.state,
+            pincode: order.shipping_address?.pincode,
             items: order.items,
             subtotal: order.subtotal,
-            paymentMethod: order.paymentMethod,
+            paymentMethod: order.payment_method,
         });
 
         if (!shipmentResult.success) {
@@ -46,24 +49,28 @@ export async function POST(request) {
             );
         }
 
-        // Update order with shipment details
-        await updateDocument('orders', orderId, {
-            shipmentId: shipmentResult.shipmentId,
-            awbCode: shipmentResult.awbCode,
+        // Update order with shipment details in logistics jsonb
+        const currentLogistics = order.logistics || {};
+        await supabaseAdmin.from('orders').update({
             status: 'shipped',
-            shippedAt: new Date().toISOString(),
-        });
+            logistics: {
+                ...currentLogistics,
+                shipment_id: shipmentResult.shipmentId,
+                awb_code: shipmentResult.awbCode,
+                shipped_at: new Date().toISOString()
+            }
+        }).eq('id', orderId);
 
         // Send WhatsApp notification
         await sendNotification('order_shipped', {
             orderId: order.id,
-            customerName: order.customerName,
+            customerName: order.customer_name,
             phone: order.phone,
             awbCode: shipmentResult.awbCode,
-            address: order.shippingAddress.address,
-            city: order.shippingAddress.city,
-            state: order.shippingAddress.state,
-            pincode: order.shippingAddress.pincode,
+            address: order.shipping_address?.address,
+            city: order.shipping_address?.city,
+            state: order.shipping_address?.state,
+            pincode: order.shipping_address?.pincode,
         });
 
         return NextResponse.json({

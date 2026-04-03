@@ -1,13 +1,33 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { getDbAdmin, ensureInitialized } from '@/lib/firebase/admin';
-import { getPaymentSettings } from '@/lib/payment/settings';
+import { supabaseAdmin } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request) {
     try {
-        await ensureInitialized();
-        const db = await getDbAdmin();
+        // --- 1. Basic Auth Validation ---
+        const authHeader = request.headers.get('authorization');
+        const expectedUser = process.env.PHONEPE_WEBHOOK_USERNAME;
+        const expectedPass = process.env.PHONEPE_WEBHOOK_PASSWORD;
 
+        if (expectedUser && expectedPass) {
+            if (!authHeader || !authHeader.startsWith('Basic ')) {
+                console.error("PhonePe Webhook Error: Missing or invalid Basic Auth");
+                return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+            }
+
+            const base64Auth = authHeader.split(' ')[1];
+            const [user, pass] = Buffer.from(base64Auth, 'base64').toString('utf8').split(':');
+
+            if (user !== expectedUser || pass !== expectedPass) {
+                console.error("PhonePe Webhook Error: Basic Auth mismatch");
+                return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+            }
+        }
+
+        // --- 2. Decode Payload ---
         const payload = await request.json();
         
         // PhonePe payload must have "response" root key
@@ -17,13 +37,14 @@ export async function POST(request) {
             return NextResponse.json({ success: true }, { status: 200 });
         }
 
-        const settings = await getPaymentSettings();
-        if (!settings?.saltKey || !settings?.saltIndex) {
+        const isProd = process.env.PHONEPE_ENVIRONMENT?.toLowerCase() === 'production';
+        const saltKey = isProd ? process.env.PHONEPE_PROD_CLIENT_SECRET : process.env.PHONEPE_TEST_CLIENT_SECRET;
+        const saltIndex = '1';
+
+        if (!saltKey) {
             console.error('PhonePe Webhook Error: PhonePe keys not configured');
             return NextResponse.json({ success: false, message: 'Configuration error' }, { status: 500 });
         }
-
-        const { saltKey, saltIndex } = settings;
 
         // X-VERIFY Validation
         const receivedChecksum = request.headers.get('x-verify');
@@ -55,13 +76,13 @@ export async function POST(request) {
         }
 
         // Idempotency check: verify current status first
-        const orderDoc = await db.collection('orders').doc(orderId).get();
-        if (!orderDoc.exists) {
+        const { data: orderData } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
+        if (!orderData) {
             console.warn(`PhonePe Webhook Warning: Order ${orderId} not found`);
             return NextResponse.json({ success: true, message: 'Order not found' }, { status: 200 });
         }
-        const orderData = orderDoc.data();
-        if (orderData.paymentStatus === 'paid') {
+
+        if (orderData.payment_status === 'paid') {
             // Idempotent return - already processed successfully
             console.log(`PhonePe Webhook: Order ${orderId} already paid`);
             return NextResponse.json({ success: true, message: 'Already processed' }, { status: 200 });
@@ -80,12 +101,11 @@ export async function POST(request) {
         // Update database if state changed
         if (paymentStatus) {
             const updates = {
-                paymentStatus,
-                updatedAt: new Date().toISOString()
+                payment_status: paymentStatus
             };
             if (orderStatus) updates.status = orderStatus;
 
-            await db.collection('orders').doc(orderId).update(updates);
+            await supabaseAdmin.from('orders').update(updates).eq('id', orderId);
             
             // Trigger confirmation notification system securely if PAID
             if (paymentStatus === 'paid') {

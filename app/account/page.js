@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { PackageOpen, MapPin, User as UserIcon, LogOut } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { logout } from '@/lib/firebase/auth';
+import { logout } from '@/lib/supabase/auth';
 
 export default function AccountPage() {
     const router = useRouter();
@@ -81,7 +81,7 @@ export default function AccountPage() {
                     </Link>
 
                     {/* Admin Dashboard - Only for admins */}
-                    {userData?.isAdmin && (
+                    {userData?.is_admin && (
                         <Link href="/admin">
                             <div className="bg-primary-50 rounded-lg border-2 border-primary-200 p-6 hover:shadow-card-hover transition-shadow">
                                 <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center mb-3">

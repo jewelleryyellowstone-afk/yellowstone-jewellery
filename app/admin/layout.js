@@ -25,7 +25,7 @@ export default function AdminLayout({ children }) {
             if (!userData) {
                 console.log('AdminLayout: No user data, redirecting to home');
                 router.push('/');
-            } else if (!userData.isAdmin) {
+            } else if (!userData.is_admin) {
                 console.log('AdminLayout: User is not admin, redirecting to home', userData);
                 router.push('/');
             }
@@ -36,7 +36,7 @@ export default function AdminLayout({ children }) {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 
-    if (!userData?.isAdmin) {
+    if (!userData?.is_admin) {
         return null;
     }
 

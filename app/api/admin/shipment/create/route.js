@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getDbAdmin, ensureInitialized } from '@/lib/firebase/admin';
-
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { verifyAdminRequest } from '@/lib/auth/admin';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request) {
     try {
@@ -18,18 +20,14 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Order ID, Courier Name and Tracking Number are required' }, { status: 400 });
         }
 
-        await ensureInitialized();
-        const db = await getDbAdmin();
+        // 2. Fetch Order from Supabase
+        const { data: orderSnap } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
 
-        // 2. Fetch Order from Firestore (Admin SDK)
-        const orderRef = db.collection('orders').doc(orderId);
-        const orderSnap = await orderRef.get();
-
-        if (!orderSnap.exists) {
+        if (!orderSnap) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
-        // 3. Update Order in Firestore
+        // 3. Update Order in Supabase
         const shippedAt = new Date().toISOString();
         const shipmentData = {
             provider: 'Manual',
@@ -40,10 +38,10 @@ export async function POST(request) {
             shippedAt
         };
 
-        await orderRef.update({
+        await supabaseAdmin.from('orders').update({
             status: 'shipped',
             logistics: shipmentData
-        });
+        }).eq('id', orderId);
 
         // 4. Trigger Notification
         try {

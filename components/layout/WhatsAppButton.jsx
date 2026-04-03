@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { createWhatsAppLink } from '@/lib/utils/format';
-import { getDocument } from '@/lib/firebase/firestore';
+import { getDocument } from '@/lib/supabase/db';
 
 /**
  * Floating WhatsApp Support Button
@@ -16,8 +16,8 @@ export default function WhatsAppButton() {
             try {
                 // Try to get dynamic setting
                 const { data } = await getDocument('settings', 'store');
-                if (data?.whatsappNumber) {
-                    setPhoneNumber(data.whatsappNumber);
+                if (data?.whatsapp_number) {
+                    setPhoneNumber(data.whatsapp_number);
                 }
             } catch (error) {
                 // Silent fail to default

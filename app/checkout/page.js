@@ -10,7 +10,7 @@ import { useDiscount } from '@/lib/hooks/useDiscount';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { formatPrice } from '@/lib/utils/format';
-import { createDocument, updateDocument, getAllDocuments } from '@/lib/firebase/firestore';
+import { createDocument, updateDocument, getAllDocuments } from '@/lib/supabase/db';
 import { recordDiscountUsage } from '@/lib/utils/discount';
 
 // Address Selector Component
@@ -155,11 +155,11 @@ export default function CheckoutPage() {
         try {
             // Create order in Firestore first
             const orderData = {
-                userId: user?.uid || 'guest',
-                customerName: formData.customerName,
+                user_id: user?.uid || null,
+                customer_name: formData.customerName,
                 email: formData.email,
                 phone: formData.phone,
-                shippingAddress: {
+                shipping_address: {
                     address: formData.address,
                     city: formData.city,
                     state: formData.state,
@@ -168,14 +168,20 @@ export default function CheckoutPage() {
                 items: cart,
                 subtotal: getTotal(),
                 status: 'pending',
-                paymentStatus: 'pending',
-                paymentMethod: document.querySelector('input[name="payment"]:checked')?.value || 'online',
+                payment_status: 'pending',
+                payment_method: document.querySelector('input[name="payment"]:checked')?.value || 'online',
             };
 
             const { id: orderId } = await createDocument('orders', orderData);
 
+            if (!orderId) {
+                alert('Order creation failed. Please check inputs or try again.');
+                setLoading(false);
+                return;
+            }
+
             // Check payment method
-            const paymentMethod = orderData.paymentMethod;
+            const paymentMethod = orderData.payment_method;
 
             if (paymentMethod === 'cod') {
                 // Cash on Delivery - no need to update paymentMethod again

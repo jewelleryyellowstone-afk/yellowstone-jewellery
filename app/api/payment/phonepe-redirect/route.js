@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDbAdmin, ensureInitialized } from '@/lib/firebase/admin';
-import { getPaymentSettings } from '@/lib/payment/settings';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -66,19 +65,17 @@ async function handleRedirect(request) {
         : (process.env.NEXT_PUBLIC_SITE_URL || reqOrigin);
 
     try {
-        await ensureInitialized();
-        const db = await getDbAdmin();
-
         const { searchParams } = new URL(request.url);
         const orderId = searchParams.get('orderId');
 
         if (!orderId) return NextResponse.redirect(`${baseUrl}/cart?error=missing_order`);
 
-        // Fetch order
-        const orderDoc = await db.collection('orders').doc(orderId).get();
-        if (!orderDoc.exists) return NextResponse.redirect(`${baseUrl}/cart?error=invalid_order`);
+        // Fetch order from Supabase
+        const { data: orderDoc } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
+        if (!orderDoc) return NextResponse.redirect(`${baseUrl}/cart?error=invalid_order`);
 
-        const { merchantTransactionId, paymentStatus } = orderDoc.data();
+        const merchantTransactionId = orderDoc.merchant_transaction_id;
+        const paymentStatus = orderDoc.payment_status;
 
         // Already confirmed paid
         if (paymentStatus === 'paid') {
@@ -86,20 +83,19 @@ async function handleRedirect(request) {
         }
 
         if (!merchantTransactionId) {
-            console.error(`[PhonePe Redirect] No merchantTransactionId for order ${orderId}`);
+            console.error(`[PhonePe Redirect] No merchant_transaction_id for order ${orderId}`);
             return NextResponse.redirect(`${baseUrl}/cart?error=invalid_transaction`);
         }
 
-        // Read credentials from Admin Settings (same as initiate route)
-        const settings = await getPaymentSettings();
-        
-        const clientId      = settings?.clientId?.trim();
-        const clientSecret  = settings?.clientSecret?.trim();
-        const clientVersion = settings?.clientVersion?.trim() || '1';
-        const environment   = settings?.environment?.trim().toLowerCase() || 'sandbox';
+        // Read credentials from Environment Variables
+        const environment = process.env.PHONEPE_ENVIRONMENT?.toLowerCase() === 'production' ? 'production' : 'sandbox';
+        const isProd = environment === 'production';
+        const clientId = isProd ? process.env.PHONEPE_PROD_CLIENT_ID?.trim() : process.env.PHONEPE_TEST_CLIENT_ID?.trim();
+        const clientSecret = isProd ? process.env.PHONEPE_PROD_CLIENT_SECRET?.trim() : process.env.PHONEPE_TEST_CLIENT_SECRET?.trim();
+        const clientVersion = isProd ? process.env.PHONEPE_PROD_CLIENT_VERSION?.trim() || '1' : process.env.PHONEPE_TEST_CLIENT_VERSION?.trim() || '1';
 
         if (!clientId || !clientSecret || !PHONEPE_V2_CONFIG[environment]) {
-            console.error('[PhonePe Redirect] Missing PhonePe credentials in Admin Settings');
+            console.error('[PhonePe Redirect] Missing PhonePe credentials in Environment Variables');
             return NextResponse.redirect(`${baseUrl}/cart?error=config_error`);
         }
 
@@ -129,11 +125,11 @@ async function handleRedirect(request) {
         const state = data?.state || data?.data?.state;
 
         if (state === 'COMPLETED') {
-            await db.collection('orders').doc(orderId).update({
-                paymentStatus: 'paid',
-                status:        'processing',
-                updatedAt:     new Date().toISOString(),
-            });
+            await supabaseAdmin.from('orders').update({
+                payment_status: 'paid',
+                status:         'processing'
+            }).eq('id', orderId);
+            
             // Fire notification non-blocking
             fetch(`${baseUrl}/api/notifications`, {
                 method:  'POST',
@@ -144,10 +140,10 @@ async function handleRedirect(request) {
             return NextResponse.redirect(`${baseUrl}/order-success?orderId=${orderId}`);
 
         } else if (state === 'FAILED') {
-            await db.collection('orders').doc(orderId).update({
-                paymentStatus: 'failed',
-                updatedAt:     new Date().toISOString(),
-            });
+            await supabaseAdmin.from('orders').update({
+                payment_status: 'failed'
+            }).eq('id', orderId);
+            
             return NextResponse.redirect(`${baseUrl}/cart?error=payment_failed`);
         }
 

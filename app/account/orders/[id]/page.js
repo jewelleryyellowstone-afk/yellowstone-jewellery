@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Package, MapPin, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { getDocument } from '@/lib/firebase/firestore';
+import { getDocument } from '@/lib/supabase/db';
 import { formatPrice, formatDateTime } from '@/lib/utils/format';
 import Button from '@/components/ui/Button';
 
@@ -166,10 +166,10 @@ export default function OrderDetailCustomerPage() {
                     Delivery Address
                 </h2>
                 <div className="text-neutral-700">
-                    <p className="font-medium">{order.customerName}</p>
-                    <p className="mt-2">{order.shippingAddress?.address}</p>
-                    <p>{order.shippingAddress?.city}, {order.shippingAddress?.state}</p>
-                    <p>PIN: {order.shippingAddress?.pincode}</p>
+                    <p className="font-medium">{order.customer_name}</p>
+                    <p className="mt-2">{order.shipping_address?.address}</p>
+                    <p>{order.shipping_address?.city}, {order.shipping_address?.state}</p>
+                    <p>PIN: {order.shipping_address?.pincode}</p>
                     <p className="mt-2">{order.phone}</p>
                 </div>
             </div>

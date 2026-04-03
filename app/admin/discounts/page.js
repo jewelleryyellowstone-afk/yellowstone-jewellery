@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Copy, CheckCircle, XCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { getAllDocuments, createDocument, updateDocument, deleteDocument } from '@/lib/firebase/firestore';
+import { getAllDocuments, createDocument, updateDocument, deleteDocument } from '@/lib/supabase/db';
 import { formatPrice } from '@/lib/utils/format';
 
 export default function AdminDiscountsPage() {
@@ -17,11 +17,11 @@ export default function AdminDiscountsPage() {
         description: '',
         type: 'percentage',
         value: 0,
-        maxDiscount: 0,
-        minOrderValue: 0,
-        maxUses: 0,
-        maxUsesPerUser: 1,
-        expiryDate: '',
+        max_discount: 0,
+        min_order_value: 0,
+        max_uses: 0,
+        max_uses_per_user: 1,
+        expiry_date: '',
         active: true,
     });
 
@@ -31,8 +31,8 @@ export default function AdminDiscountsPage() {
 
     async function loadDiscounts() {
         const { data, error } = await getAllDocuments('coupons', {
-            orderByField: 'createdAt',
-            orderDirection: 'desc',
+            orderBy: 'created_at',
+            ascending: false,
         });
         if (error) {
             console.error('Failed to load coupons:', error);
@@ -48,12 +48,12 @@ export default function AdminDiscountsPage() {
             ...formData,
             code: formData.code.toUpperCase(),
             value: parseFloat(formData.value),
-            maxDiscount: parseFloat(formData.maxDiscount) || null,
-            minOrderValue: parseFloat(formData.minOrderValue) || 0,
-            maxUses: parseInt(formData.maxUses) || null,
-            maxUsesPerUser: parseInt(formData.maxUsesPerUser) || 1,
-            usedCount: 0,
-            usedBy: {},
+            max_discount: parseFloat(formData.max_discount) || null,
+            min_order_value: parseFloat(formData.min_order_value) || 0,
+            max_uses: parseInt(formData.max_uses) || null,
+            max_uses_per_user: parseInt(formData.max_uses_per_user) || 1,
+            used_count: 0,
+            used_by: {},
         };
 
         try {
@@ -77,11 +77,11 @@ export default function AdminDiscountsPage() {
             description: discount.description || '',
             type: discount.type,
             value: discount.value,
-            maxDiscount: discount.maxDiscount || 0,
-            minOrderValue: discount.minOrderValue || 0,
-            maxUses: discount.maxUses || 0,
-            maxUsesPerUser: discount.maxUsesPerUser || 1,
-            expiryDate: discount.expiryDate || '',
+            max_discount: discount.max_discount || 0,
+            min_order_value: discount.min_order_value || 0,
+            max_uses: discount.max_uses || 0,
+            max_uses_per_user: discount.max_uses_per_user || 1,
+            expiry_date: discount.expiry_date || '',
             active: discount.active !== false,
         });
         setEditingId(discount.id);
@@ -105,11 +105,11 @@ export default function AdminDiscountsPage() {
             description: '',
             type: 'percentage',
             value: 0,
-            maxDiscount: 0,
-            minOrderValue: 0,
-            maxUses: 0,
-            maxUsesPerUser: 1,
-            expiryDate: '',
+            max_discount: 0,
+            min_order_value: 0,
+            max_uses: 0,
+            max_uses_per_user: 1,
+            expiry_date: '',
             active: true,
         });
         setEditingId(null);
@@ -181,8 +181,8 @@ export default function AdminDiscountsPage() {
                                 <Input
                                     label="Max Discount (₹)"
                                     type="number"
-                                    value={formData.maxDiscount}
-                                    onChange={(e) => setFormData({ ...formData, maxDiscount: e.target.value })}
+                                    value={formData.max_discount}
+                                    onChange={(e) => setFormData({ ...formData, max_discount: e.target.value })}
                                     min="0"
                                     helperText="Optional cap"
                                 />
@@ -191,8 +191,8 @@ export default function AdminDiscountsPage() {
                             <Input
                                 label="Min Order Value (₹)"
                                 type="number"
-                                value={formData.minOrderValue}
-                                onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
+                                value={formData.min_order_value}
+                                onChange={(e) => setFormData({ ...formData, min_order_value: e.target.value })}
                                 min="0"
                             />
                         </div>
@@ -201,8 +201,8 @@ export default function AdminDiscountsPage() {
                             <Input
                                 label="Max Uses (Total)"
                                 type="number"
-                                value={formData.maxUses}
-                                onChange={(e) => setFormData({ ...formData, maxUses: e.target.value })}
+                                value={formData.max_uses}
+                                onChange={(e) => setFormData({ ...formData, max_uses: e.target.value })}
                                 min="0"
                                 helperText="0 = unlimited"
                             />
@@ -210,16 +210,16 @@ export default function AdminDiscountsPage() {
                             <Input
                                 label="Max Uses Per User"
                                 type="number"
-                                value={formData.maxUsesPerUser}
-                                onChange={(e) => setFormData({ ...formData, maxUsesPerUser: e.target.value })}
+                                value={formData.max_uses_per_user}
+                                onChange={(e) => setFormData({ ...formData, max_uses_per_user: e.target.value })}
                                 min="1"
                             />
 
                             <Input
                                 label="Expiry Date"
                                 type="date"
-                                value={formData.expiryDate}
-                                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                                value={formData.expiry_date}
+                                onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                             />
                         </div>
 
@@ -288,18 +288,18 @@ export default function AdminDiscountsPage() {
                                             <p className="font-semibold">
                                                 {discount.type === 'percentage' ? `${discount.value}%` : formatPrice(discount.value)}
                                             </p>
-                                            {discount.maxDiscount && (
-                                                <p className="text-sm text-neutral-600">Max: {formatPrice(discount.maxDiscount)}</p>
+                                            {discount.max_discount && (
+                                                <p className="text-sm text-neutral-600">Max: {formatPrice(discount.max_discount)}</p>
                                             )}
-                                            {discount.minOrderValue > 0 && (
-                                                <p className="text-sm text-neutral-600">Min: {formatPrice(discount.minOrderValue)}</p>
+                                            {discount.min_order_value > 0 && (
+                                                <p className="text-sm text-neutral-600">Min: {formatPrice(discount.min_order_value)}</p>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-sm">
-                                            <p>{discount.usedCount || 0} {discount.maxUses ? `/ ${discount.maxUses}` : ''}</p>
+                                            <p>{discount.used_count || 0} {discount.max_uses ? `/ ${discount.max_uses}` : ''}</p>
                                         </td>
                                         <td className="px-6 py-4 text-sm">
-                                            {discount.expiryDate || 'No expiry'}
+                                            {discount.expiry_date || 'No expiry'}
                                         </td>
                                         <td className="px-6 py-4">
                                             {discount.active ? (

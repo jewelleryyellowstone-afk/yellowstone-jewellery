@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { getAllDocuments, createDocument, updateDocument, deleteDocument } from '@/lib/firebase/firestore';
-import { uploadImage } from '@/lib/firebase/storage';
+import { getAllDocuments, createDocument, updateDocument, deleteDocument } from '@/lib/supabase/db';
+import { uploadImage } from '@/lib/cloudinary/upload';
 
 export default function CategoriesPage() {
     const [categories, setCategories] = useState([]);
@@ -28,8 +28,8 @@ export default function CategoriesPage() {
     async function loadCategories() {
         try {
             const { data, error } = await getAllDocuments('categories', {
-                orderByField: 'order',
-                orderDirection: 'asc',
+                orderBy: 'order',
+                ascending: true,
             });
             if (error) {
                 console.error('Error loading categories:', error);
@@ -51,7 +51,7 @@ export default function CategoriesPage() {
 
             // Upload new image if selected
             if (formData.imageFile) {
-                const { url, error: uploadError } = await uploadImage(formData.imageFile, 'categories/');
+                const { url, error: uploadError } = await uploadImage(formData.imageFile, 'categories');
                 if (uploadError) {
                     alert('Failed to upload image: ' + uploadError);
                     return;
@@ -114,7 +114,7 @@ export default function CategoriesPage() {
             setCategories(categories.filter(c => c.id !== id));
             alert('Category deleted successfully');
         }
-    };
+    }
 
     const resetForm = () => {
         setFormData({ name: '', description: '', order: 0, image: null, imageFile: null, imagePreview: null });

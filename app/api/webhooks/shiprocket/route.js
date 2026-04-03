@@ -1,14 +1,13 @@
-
 import { NextResponse } from 'next/server';
-import { getDbAdmin, ensureInitialized } from '@/lib/firebase/admin';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { sendNotification } from '@/lib/notifications/service';
 import crypto from 'crypto';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(request) {
     try {
-        await ensureInitialized();
-        const db = await getDbAdmin();
-
         const body = await request.json();
         const signature = request.headers.get('x-shiprocket-signature');
 
@@ -35,43 +34,43 @@ export async function POST(request) {
 
         if (newStatus) {
             // Find Order by AWB or Order ID
-            // Shiprocket sends 'order_id' which usually matches our Firestore ID if passed correctly
-            // Alternatively, query by logistics.awbCode
+            // Shiprocket sends 'order_id' which usually matches our DB ID if passed correctly
 
-            let orderRef;
             let orderDoc;
 
             // Try fetching by ID first
             if (order_id) {
-                orderDoc = await db.collection('orders').doc(order_id).get();
+                const { data } = await supabaseAdmin.from('orders').select('*').eq('id', order_id).single();
+                if (data) orderDoc = data;
             }
 
-            // Fallback: Query by AWB
-            if (!orderDoc?.exists) {
-                const querySnapshot = await db.collection('orders')
-                    .where('logistics.awbCode', '==', awb)
-                    .limit(1)
-                    .get();
+            // Fallback: Query by AWB in JSONB logistics column
+            if (!orderDoc) {
+                const { data } = await supabaseAdmin
+                    .from('orders')
+                    .select('*')
+                    .contains('logistics', { awbCode: awb })
+                    .limit(1);
 
-                if (!querySnapshot.empty) {
-                    orderDoc = querySnapshot.docs[0];
-                    orderRef = orderDoc.ref;
+                if (data && data.length > 0) {
+                    orderDoc = data[0];
                 }
-            } else {
-                orderRef = orderDoc.ref;
             }
 
-            if (orderDoc?.exists) {
+            if (orderDoc) {
+                const currentLogistics = orderDoc.logistics || {};
+                
                 // Update Order Status
-                await orderRef.update({
+                await supabaseAdmin.from('orders').update({
                     status: newStatus,
-                    'logistics.currentStatus': current_status,
-                    updatedAt: new Date().toISOString()
-                });
+                    logistics: {
+                        ...currentLogistics,
+                        current_status: current_status
+                    }
+                }).eq('id', orderDoc.id);
 
                 // Trigger Notification
-                const orderData = { id: orderDoc.id, ...orderDoc.data() };
-                await sendNotification(`order_${newStatus}`, orderData);
+                await sendNotification(`order_${newStatus}`, orderDoc);
 
                 console.log(`Webhook: Order ${orderDoc.id} updated to ${newStatus}`);
             } else {

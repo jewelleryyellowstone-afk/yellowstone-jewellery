@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getDbAdmin, ensureInitialized } from '@/lib/firebase/admin';
+import { supabaseAdmin } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request) {
     try {
-        await ensureInitialized();
-        const db = await getDbAdmin();
-
         // Warning: This physically deletes all orders. Protect this endpoint in production!
         // Future improvement: check Firebase Auth token server-side for internal Admin access
         
@@ -15,24 +15,20 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid confirmation phrase.' }, { status: 400 });
         }
 
-        const ordersRef = db.collection('orders');
-        const snapshot = await ordersRef.get();
+        const { data: orders } = await supabaseAdmin.from('orders').select('id');
 
-        if (snapshot.empty) {
+        if (!orders || orders.length === 0) {
             return NextResponse.json({ message: 'No orders found to delete.' });
         }
 
-        const batch = db.batch();
-        let count = 0;
+        const ids = orders.map(order => order.id);
+        const { error } = await supabaseAdmin.from('orders').delete().in('id', ids);
 
-        snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
-            count++;
-        });
+        if (error) {
+            throw error;
+        }
 
-        await batch.commit();
-
-        return NextResponse.json({ message: `Successfully deleted ${count} test orders and reset revenue.` });
+        return NextResponse.json({ message: `Successfully deleted ${ids.length} test orders and reset revenue.` });
 
     } catch (error) {
         console.error('Error clearing test orders:', error);

@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { getDbAdmin, ensureInitialized } from '@/lib/firebase/admin';
-import { getPaymentSettings } from '@/lib/payment/settings';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
-// Force dynamic rendering - required for Firebase App Hosting / Cloud Functions
+// Force dynamic rendering - required
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request) {
     try {
-        await ensureInitialized();
-        const db = await getDbAdmin();
-
         const { searchParams } = new URL(request.url);
         const transactionId = searchParams.get('transactionId');
         
@@ -19,14 +15,14 @@ export async function GET(request) {
             return NextResponse.json({ error: 'Missing transactionId parameter' }, { status: 400 });
         }
 
-        const settings = await getPaymentSettings();
-        if (!settings?.merchantId || !settings?.saltKey || !settings?.saltIndex || !settings?.environment) {
+        const isProd = process.env.PHONEPE_ENVIRONMENT?.toLowerCase() === 'production';
+        const merchantId = isProd ? process.env.PHONEPE_PROD_CLIENT_ID?.trim() : process.env.PHONEPE_TEST_CLIENT_ID?.trim();
+        const saltKey = isProd ? process.env.PHONEPE_PROD_CLIENT_SECRET?.trim() : process.env.PHONEPE_TEST_CLIENT_SECRET?.trim();
+        const saltIndex = '1';
+
+        if (!merchantId || !saltKey) {
             return NextResponse.json({ error: 'Payment gateway configuration error' }, { status: 500 });
         }
-
-        const merchantId = settings.merchantId?.trim() || '';
-        const saltKey = settings.saltKey?.trim() || '';
-        const saltIndex = settings.saltIndex?.toString().trim() || '1';
 
         // Standardise orderId from merchantTransactionId
         let orderId = transactionId;
@@ -34,9 +30,8 @@ export async function GET(request) {
             orderId = transactionId.split('_')[0];
         }
 
-        // Use configured environment for Sandbox vs Production API
-        const isProd = settings.environment === 'production';
         const endpoint = `/pg/v1/status/${merchantId}/${transactionId}`; // This is the path part for checksum
+
         const STATUS_API_BASE_URL = isProd
             ? `https://api.phonepe.com/apis/hermes`
             : `https://api-preprod.phonepe.com/apis/pg-sandbox`;
@@ -59,23 +54,20 @@ export async function GET(request) {
 
         if (data.success && data.data) {
             const state = data.data.state;
-            const orderDoc = await db.collection('orders').doc(orderId).get();
             
-            if (orderDoc.exists) {
-                const orderData = orderDoc.data();
-                
+            const { data: orderData } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
+            
+            if (orderData) {
                 // Keep synchronization only if our internal state is behind
-                if (orderData.paymentStatus !== 'paid' && state === 'COMPLETED') {
-                     await db.collection('orders').doc(orderId).update({
-                        paymentStatus: 'paid',
-                        status: 'processing',
-                        updatedAt: new Date().toISOString()
-                    });
-                } else if (orderData.paymentStatus === 'pending' && state === 'FAILED') {
-                     await db.collection('orders').doc(orderId).update({
-                        paymentStatus: 'failed',
-                        updatedAt: new Date().toISOString()
-                    });
+                if (orderData.payment_status !== 'paid' && state === 'COMPLETED') {
+                     await supabaseAdmin.from('orders').update({
+                        payment_status: 'paid',
+                        status: 'processing'
+                    }).eq('id', orderId);
+                } else if (orderData.payment_status === 'pending' && state === 'FAILED') {
+                     await supabaseAdmin.from('orders').update({
+                        payment_status: 'failed'
+                    }).eq('id', orderId);
                 }
             }
         }

@@ -4,9 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Phone, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { updateDocument, getDocument } from '@/lib/firebase/firestore';
-import { updateProfile } from 'firebase/auth'; // Import from Firebase SDK directly or via auth wrapper if available
-import { auth } from '@/lib/firebase/config';
+import { supabase } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
@@ -17,7 +15,7 @@ export default function ProfilePage() {
     const [updating, setUpdating] = useState(false);
 
     const [formData, setFormData] = useState({
-        displayName: '',
+        display_name: '',
         email: '',
         phone: ''
     });
@@ -29,12 +27,11 @@ export default function ProfilePage() {
     }, [user]);
 
     async function loadProfile() {
-        // Load data from Auth and Firestore
-        // Preference: Firestore userData > Auth user object
+        // Load data from Supabase wrapper context
         setFormData({
-            displayName: userData?.displayName || user.displayName || '',
+            display_name: userData?.display_name || user.display_name || '',
             email: user.email || '',
-            phone: userData?.phone || userData?.phoneNumber || ''
+            phone: userData?.phone || userData?.phone_number || ''
         });
         setLoading(false);
     }
@@ -44,19 +41,11 @@ export default function ProfilePage() {
         setUpdating(true);
 
         try {
-            // 1. Update Firebase Auth Profile (Display Name)
-            if (auth.currentUser && formData.displayName !== user.displayName) {
-                await updateProfile(auth.currentUser, {
-                    displayName: formData.displayName
-                });
-            }
-
-            // 2. Update Firestore User Document
-            await updateDocument('users', user.uid, {
-                displayName: formData.displayName,
+            await supabase.from('users').update({ 
+                display_name: formData.display_name,
                 phone: formData.phone,
-                updatedAt: new Date().toISOString()
-            });
+                updated_at: new Date().toISOString()
+            }).eq('id', user.id);
 
             alert('Profile updated successfully!');
         } catch (error) {
@@ -99,8 +88,8 @@ export default function ProfilePage() {
 
                         <Input
                             label="Full Name"
-                            value={formData.displayName}
-                            onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                            value={formData.display_name}
+                            onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                             icon={<User className="w-4 h-4 text-neutral-400" />}
                             placeholder="Enter your name"
                         />

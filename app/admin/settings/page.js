@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Save, Store, CreditCard, Truck, Lock, AlertTriangle, Database } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { getDocument, setDocument } from '@/lib/firebase/firestore';
+import { getDocument, setDocument } from '@/lib/supabase/db';
 
 export default function AdminSettingsPage() {
     const [activeTab, setActiveTab] = useState('store');
@@ -16,34 +16,23 @@ export default function AdminSettingsPage() {
 
     // Data States
     const [storeData, setStoreData] = useState({
-        storeName: 'YellowStone Jewellery',
+        store_name: 'YellowStone Jewellery',
         tagline: 'Premium Artificial Jewellery',
-        contactEmail: '',
-        contactPhone: '',
-        whatsappNumber: '',
-        freeShippingThreshold: 999,
-        standardShipping: 50,
-        expressShipping: 150,
-        gstNumber: '',
-        businessAddress: '',
-        facebookUrl: '',
-        instagramUrl: '',
-        pinterestUrl: '',
-        returnPolicy: '',
-        termsOfService: '',
-        privacyPolicy: '',
-        codAvailable: true,
-    });
-
-    const [paymentData, setPaymentData] = useState({
-        provider: 'phonepe',
-        enabled: false,
-        environment: 'sandbox',
-        clientId: '',
-        clientSecret: '',
-        clientVersion: '1',
-        webhookUsername: '',
-        webhookPassword: '',
+        contact_email: '',
+        contact_phone: '',
+        whatsapp_number: '',
+        free_shipping_threshold: 999,
+        standard_shipping: 50,
+        express_shipping: 150,
+        gst_number: '',
+        business_address: '',
+        facebook_url: '',
+        instagram_url: '',
+        pinterest_url: '',
+        return_policy: '',
+        terms_of_service: '',
+        privacy_policy: '',
+        cod_available: true,
     });
 
     const [logisticsData, setLogisticsData] = useState({
@@ -64,10 +53,6 @@ export default function AdminSettingsPage() {
             const { data: store } = await getDocument('settings', 'store');
             if (store) setStoreData(prev => ({ ...prev, ...store }));
 
-            // Load Payment Settings
-            const { data: payment } = await getDocument('settings', 'payment');
-            if (payment) setPaymentData(prev => ({ ...prev, ...payment }));
-
             // Load Logistics Settings
             const { data: logistics } = await getDocument('settings', 'logistics');
             if (logistics) setLogisticsData(prev => ({ ...prev, ...logistics }));
@@ -80,28 +65,7 @@ export default function AdminSettingsPage() {
         }
     }
 
-    const handleTestCredentials = async () => {
-        setTesting(true);
-        setTestResult(null);
-        try {
-            const res = await fetch('/api/admin/phonepe-validate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    clientId: paymentData.clientId,
-                    clientSecret: paymentData.clientSecret,
-                    clientVersion: paymentData.clientVersion || '1',
-                    environment: paymentData.environment || 'sandbox',
-                }),
-            });
-            const data = await res.json();
-            setTestResult(data);
-        } catch (err) {
-            setTestResult({ valid: false, error: 'Network error: ' + err.message });
-        } finally {
-            setTesting(false);
-        }
-    };
+
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -110,7 +74,6 @@ export default function AdminSettingsPage() {
         try {
             let dataToSave;
             if (activeTab === 'store') dataToSave = storeData;
-            else if (activeTab === 'payment') dataToSave = paymentData;
             else if (activeTab === 'logistics') dataToSave = logisticsData;
 
             const { error } = await setDocument('settings', activeTab, dataToSave);
@@ -119,10 +82,7 @@ export default function AdminSettingsPage() {
                 throw new Error(error);
             }
 
-            if (activeTab === 'payment') {
-                // Ping backend to clear its memory cache so next checkout reads fresh data
-                await fetch('/api/admin/payment-settings', { method: 'POST' });
-            }
+
 
             alert(`${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} settings saved!`);
         } catch (error) {
@@ -187,16 +147,7 @@ export default function AdminSettingsPage() {
                     <Store className="w-4 h-4 mr-2" />
                     Store
                 </button>
-                <button
-                    onClick={() => setActiveTab('payment')}
-                    className={`flex items-center px-6 py-3 border-b-2 font-medium transition-colors ${activeTab === 'payment'
-                        ? 'border-primary-500 text-primary-600'
-                        : 'border-transparent text-neutral-500 hover:text-neutral-700'
-                        }`}
-                >
-                    <CreditCard className="w-4 h-4 mr-2" />
-                    Payments
-                </button>
+
                 <button
                     onClick={() => setActiveTab('logistics')}
                     className={`flex items-center px-6 py-3 border-b-2 font-medium transition-colors ${activeTab === 'logistics'
@@ -230,8 +181,8 @@ export default function AdminSettingsPage() {
                             <div className="grid md:grid-cols-2 gap-4">
                                 <Input
                                     label="Store Name"
-                                    value={storeData.storeName}
-                                    onChange={(e) => setStoreData({ ...storeData, storeName: e.target.value })}
+                                    value={storeData.store_name}
+                                    onChange={(e) => setStoreData({ ...storeData, store_name: e.target.value })}
                                     required
                                 />
                                 <Input
@@ -242,22 +193,22 @@ export default function AdminSettingsPage() {
                                 <Input
                                     label="Contact Email"
                                     type="email"
-                                    value={storeData.contactEmail}
-                                    onChange={(e) => setStoreData({ ...storeData, contactEmail: e.target.value })}
+                                    value={storeData.contact_email}
+                                    onChange={(e) => setStoreData({ ...storeData, contact_email: e.target.value })}
                                     required
                                 />
                                 <Input
                                     label="Contact Phone"
                                     type="tel"
-                                    value={storeData.contactPhone}
-                                    onChange={(e) => setStoreData({ ...storeData, contactPhone: e.target.value })}
+                                    value={storeData.contact_phone}
+                                    onChange={(e) => setStoreData({ ...storeData, contact_phone: e.target.value })}
                                     required
                                 />
                             </div>
                             <Input
                                 label="WhatsApp Number"
-                                value={storeData.whatsappNumber}
-                                onChange={(e) => setStoreData({ ...storeData, whatsappNumber: e.target.value })}
+                                value={storeData.whatsapp_number}
+                                onChange={(e) => setStoreData({ ...storeData, whatsapp_number: e.target.value })}
                                 placeholder="919876543210"
                                 helperText="No spaces or +"
                             />
@@ -270,27 +221,27 @@ export default function AdminSettingsPage() {
                                 <Input
                                     label="Free Shipping > (₹)"
                                     type="number"
-                                    value={storeData.freeShippingThreshold}
-                                    onChange={(e) => setStoreData({ ...storeData, freeShippingThreshold: parseInt(e.target.value) })}
+                                    value={storeData.free_shipping_threshold}
+                                    onChange={(e) => setStoreData({ ...storeData, free_shipping_threshold: parseInt(e.target.value) })}
                                 />
                                 <Input
                                     label="Standard (₹)"
                                     type="number"
-                                    value={storeData.standardShipping}
-                                    onChange={(e) => setStoreData({ ...storeData, standardShipping: parseInt(e.target.value) })}
+                                    value={storeData.standard_shipping}
+                                    onChange={(e) => setStoreData({ ...storeData, standard_shipping: parseInt(e.target.value) })}
                                 />
                                 <Input
                                     label="Express (₹)"
                                     type="number"
-                                    value={storeData.expressShipping}
-                                    onChange={(e) => setStoreData({ ...storeData, expressShipping: parseInt(e.target.value) })}
+                                    value={storeData.express_shipping}
+                                    onChange={(e) => setStoreData({ ...storeData, express_shipping: parseInt(e.target.value) })}
                                 />
                             </div>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    checked={storeData.codAvailable}
-                                    onChange={(e) => setStoreData({ ...storeData, codAvailable: e.target.checked })}
+                                    checked={storeData.cod_available}
+                                    onChange={(e) => setStoreData({ ...storeData, cod_available: e.target.checked })}
                                     className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                                 />
                                 <span className="text-sm font-medium text-neutral-700">Enable Cash on Delivery (COD)</span>
@@ -304,129 +255,14 @@ export default function AdminSettingsPage() {
                                 className="w-full p-3 border rounded-md"
                                 rows={3}
                                 placeholder="Return Policy"
-                                value={storeData.returnPolicy}
-                                onChange={(e) => setStoreData({ ...storeData, returnPolicy: e.target.value })}
+                                value={storeData.return_policy}
+                                onChange={(e) => setStoreData({ ...storeData, return_policy: e.target.value })}
                             />
                         </div>
                     </div>
                 )}
 
-                {/* PAYMENT TAB */}
-                {activeTab === 'payment' && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-white rounded-lg shadow-card p-6 border-l-4 border-l-blue-500">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h2 className="font-semibold text-lg flex items-center gap-2">
-                                        <Lock className="w-4 h-4 text-neutral-500" />
-                                        Payment Gateway (PhonePe)
-                                    </h2>
-                                    <p className="text-sm text-neutral-500 mt-1">
-                                        Securely configure your PhonePe API keys for payment processing and webhooks.
-                                    </p>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="sr-only peer"
-                                        checked={paymentData.enabled}
-                                        onChange={(e) => setPaymentData({ ...paymentData, enabled: e.target.checked })}
-                                    />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    <span className="ml-3 text-sm font-medium text-gray-900">Enable</span>
-                                </label>
-                            </div>
 
-                            <div className="space-y-4">
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-sm font-medium text-gray-700">Environment</label>
-                                        <select
-                                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-900"
-                                            value={paymentData.environment || 'sandbox'}
-                                            onChange={(e) => setPaymentData({ ...paymentData, environment: e.target.value })}
-                                        >
-                                            <option value="sandbox">Sandbox (Testing)</option>
-                                            <option value="production">Production (LIVE)</option>
-                                        </select>
-                                    </div>
-                                    <Input
-                                        label="Client ID *"
-                                        value={paymentData.clientId || ''}
-                                        onChange={(e) => setPaymentData({ ...paymentData, clientId: e.target.value })}
-                                        placeholder="M23EK5H28QPN6_2603261738"
-                                        required
-                                    />
-                                </div>
-                                <div className="grid md:grid-cols-4 gap-4">
-                                    <div className="md:col-span-3">
-                                        <Input
-                                            label="Client Secret *"
-                                            type="password"
-                                            value={paymentData.clientSecret || ''}
-                                            onChange={(e) => setPaymentData({ ...paymentData, clientSecret: e.target.value })}
-                                            placeholder="••••••••••••••••"
-                                            helperText="From PhonePe Developer Settings"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="md:col-span-1">
-                                        <Input
-                                            label="Client Version *"
-                                            value={paymentData.clientVersion || '1'}
-                                            onChange={(e) => setPaymentData({ ...paymentData, clientVersion: e.target.value })}
-                                            placeholder="1"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* TEST CREDENTIALS BUTTON */}
-                                <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div>
-                                            <p className="text-sm font-semibold text-gray-800">🔬 Test Connection</p>
-                                            <p className="text-xs text-gray-500">Verify your Client ID + Client Secret before saving.</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleTestCredentials}
-                                            disabled={testing || !paymentData.clientId || !paymentData.clientSecret}
-                                            className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            {testing ? 'Testing...' : 'Test Connection'}
-                                        </button>
-                                    </div>
-                                    {testResult && (
-                                        <div className={`mt-2 p-3 rounded-md text-sm ${testResult.valid ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
-                                            <p className="font-medium">{testResult.valid ? testResult.message : testResult.error}</p>
-                                            {testResult.details && <p className="mt-1 text-xs opacity-80">{testResult.details}</p>}
-                                            {testResult.suggestion && <p className="mt-1 text-xs font-semibold">💡 Fix: {testResult.suggestion}</p>}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <h3 className="text-sm font-semibold text-neutral-800 mt-4 border-t pt-4">S2S Webhook Configuration</h3>
-                                <p className="text-xs text-neutral-500 mb-2">Set these to secure your webhook endpoint with Basic Auth in the PhonePe Dashboard.</p>
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <Input
-                                        label="Webhook Username"
-                                        value={paymentData.webhookUsername || ''}
-                                        onChange={(e) => setPaymentData({ ...paymentData, webhookUsername: e.target.value })}
-                                        placeholder="Enter a username"
-                                    />
-                                    <Input
-                                        label="Webhook Password"
-                                        type="password"
-                                        value={paymentData.webhookPassword || ''}
-                                        onChange={(e) => setPaymentData({ ...paymentData, webhookPassword: e.target.value })}
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* LOGISTICS TAB */}
                 {activeTab === 'logistics' && (
