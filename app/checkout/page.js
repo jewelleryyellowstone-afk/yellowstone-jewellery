@@ -153,9 +153,8 @@ export default function CheckoutPage() {
         setLoading(true);
 
         try {
-            // Create order in Firestore first
             const orderData = {
-                user_id: user?.uid || null,
+                user_id: user?.id || null,
                 customer_name: formData.customerName,
                 email: formData.email,
                 phone: formData.phone,
@@ -264,7 +263,7 @@ export default function CheckoutPage() {
                                             </button>
                                         </div>
                                         <SavedAddressSelector
-                                            userId={user.uid}
+                                            userId={user.id}
                                             onSelect={(addr) => {
                                                 setFormData({
                                                     ...formData,
@@ -430,7 +429,7 @@ export default function CheckoutPage() {
                                         <Button
                                             type="button"
                                             size="sm"
-                                            onClick={() => applyDiscountCode(discountCode, getTotal(), user?.uid)}
+                                            onClick={() => applyDiscountCode(discountCode, getTotal(), user?.id)}
                                             loading={validating}
                                             disabled={!discountCode}
                                         >
