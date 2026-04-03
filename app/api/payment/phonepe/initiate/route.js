@@ -99,11 +99,16 @@ export async function POST(request) {
             }, { status: 500 });
         }
 
-        // --- 3. Resolve redirect base URL ---
-        const reqOrigin = new URL(request.url).origin;
-        const baseUrl = reqOrigin.includes('localhost')
-            ? reqOrigin
-            : (process.env.NEXT_PUBLIC_SITE_URL || reqOrigin);
+        // --- 3. Resolve redirect base URL securely via Host Header ---
+        const host = request.headers.get('host') || 'localhost:3000';
+        const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https');
+        
+        let baseUrl = `${protocol}://${host}`;
+        
+        // If deployed to production (not local), prefer the configured ENV URL
+        if (!host.includes('localhost') && !host.includes('127.0.0.1')) {
+            baseUrl = process.env.NEXT_PUBLIC_SITE_URL || baseUrl;
+        }
 
         // --- 4. Log diagnostics ---
         console.log(`[PhonePe] ▶ Order: ${orderId} | Amount: ₹${amount} | Env: ${environment}`);

@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { ChevronRight, ShieldCheck, RotateCcw, Truck } from 'lucide-react';
 import ProductCard from '@/components/ui/ProductCard';
 import Button from '@/components/ui/Button';
-import { getProducts, getCategories } from '@/lib/supabase/db';
+import { getProducts, getCategories, getDocument } from '@/lib/supabase/db';
 
 export default function HomePage() {
     const [featuredProducts, setFeaturedProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [design, setDesign] = useState(null);
 
     useEffect(() => {
         async function loadData() {
@@ -24,8 +25,12 @@ export default function HomePage() {
             // Load categories
             const { data: cats } = await getCategories();
 
+            // Load design settings
+            const { data: designSettings } = await getDocument('settings', 'design');
+
             setFeaturedProducts(products || []);
             setCategories(cats || []);
+            if (designSettings) setDesign(designSettings);
             setLoading(false);
         }
 
@@ -40,7 +45,7 @@ export default function HomePage() {
                 {/* Background Image */}
                 <div className="absolute inset-0 z-0">
                     <img
-                        src="/hero-banner.jpg"
+                        src={design?.hero_image_url || "/hero-banner.jpg"}
                         alt="YellowStone Jewellery"
                         className="w-full h-full object-cover"
                     />

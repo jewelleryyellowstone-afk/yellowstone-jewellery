@@ -151,10 +151,31 @@ export default function OrderDetailCustomerPage() {
                     ))}
                 </div>
 
-                <div className="mt-6 pt-4 border-t">
-                    <div className="flex justify-between font-bold text-lg">
-                        <span>Total</span>
+                <div className="mt-6 pt-4 border-t space-y-2">
+                    <div className="flex justify-between text-neutral-600">
+                        <span>Subtotal</span>
                         <span>{formatPrice(order.subtotal)}</span>
+                    </div>
+                    {order.discount && order.discount > 0 ? (
+                        <div className="flex justify-between text-green-600">
+                            <span>Discount</span>
+                            <span>-{formatPrice(order.discount)}</span>
+                        </div>
+                    ) : null}
+                    {order.total - order.subtotal + (order.discount || 0) > 0 ? (
+                        <div className="flex justify-between text-neutral-600">
+                            <span>Delivery Fee</span>
+                            <span>{formatPrice(order.total - order.subtotal + (order.discount || 0))}</span>
+                        </div>
+                    ) : (
+                        <div className="flex justify-between text-neutral-600">
+                            <span>Delivery Fee</span>
+                            <span className="text-green-600">Free</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                        <span>Total</span>
+                        <span>{formatPrice(order.total)}</span>
                     </div>
                 </div>
             </div>

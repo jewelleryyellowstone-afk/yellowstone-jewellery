@@ -18,7 +18,11 @@ export default function CategoriesPage() {
         order: 0,
         image: null,
         imageFile: null,
-        imagePreview: null
+        imagePreview: null,
+        banner_url: null,
+        bannerFile: null,
+        bannerPreview: null,
+        banner_link: ''
     });
 
     useEffect(() => {
@@ -49,21 +53,35 @@ export default function CategoriesPage() {
         try {
             let imageUrl = formData.image;
 
+            let bannerUrl = formData.banner_url;
+
             // Upload new image if selected
             if (formData.imageFile) {
                 const { url, error: uploadError } = await uploadImage(formData.imageFile, 'categories');
                 if (uploadError) {
-                    alert('Failed to upload image: ' + uploadError);
+                    alert('Failed to upload category image: ' + uploadError);
                     return;
                 }
                 imageUrl = url;
+            }
+
+            // Upload new banner if selected
+            if (formData.bannerFile) {
+                const { url, error: uploadError } = await uploadImage(formData.bannerFile, 'banners');
+                if (uploadError) {
+                    alert('Failed to upload banner: ' + uploadError);
+                    return;
+                }
+                bannerUrl = url;
             }
 
             const categoryData = {
                 name: formData.name,
                 description: formData.description,
                 order: formData.order,
-                image: imageUrl
+                image: imageUrl,
+                banner_url: bannerUrl,
+                banner_link: formData.banner_link,
             };
 
             if (editingId) {
@@ -100,7 +118,11 @@ export default function CategoriesPage() {
             order: category.order || 0,
             image: category.image || null,
             imagePreview: category.image || null,
-            imageFile: null
+            imageFile: null,
+            banner_url: category.banner_url || null,
+            bannerPreview: category.banner_url || null,
+            bannerFile: null,
+            banner_link: category.banner_link || '',
         });
         setEditingId(category.id);
         setShowForm(true);
@@ -117,7 +139,7 @@ export default function CategoriesPage() {
     }
 
     const resetForm = () => {
-        setFormData({ name: '', description: '', order: 0, image: null, imageFile: null, imagePreview: null });
+        setFormData({ name: '', description: '', order: 0, image: null, imageFile: null, imagePreview: null, banner_url: null, bannerFile: null, bannerPreview: null, banner_link: '' });
         setEditingId(null);
         setShowForm(false);
     };
@@ -189,6 +211,51 @@ export default function CategoriesPage() {
                                         </label>
                                     )}
                                 </div>
+                                <label className="block text-sm font-medium text-neutral-700 mt-6 mb-2">Category Banner (Hero)</label>
+                                <div className="border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center hover:bg-neutral-50 transition-colors relative group">
+                                    {formData.bannerPreview ? (
+                                        <div className="relative aspect-video mb-2 mx-auto w-full max-w-[250px] overflow-hidden rounded-lg">
+                                            <img
+                                                src={formData.bannerPreview}
+                                                alt="Banner Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, bannerFile: null, bannerPreview: null }))}
+                                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label className="cursor-pointer block py-8">
+                                            <div className="mx-auto w-12 h-12 text-neutral-400 mb-2">
+                                                <Plus className="w-12 h-12" />
+                                            </div>
+                                            <span className="text-sm text-neutral-500">Upload Banner Image</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onload = (ev) => {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                bannerFile: file,
+                                                                bannerPreview: ev.target.result
+                                                            }));
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="md:col-span-2 space-y-4">
@@ -219,6 +286,14 @@ export default function CategoriesPage() {
                                     value={formData.order}
                                     onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
                                     helperText="Lower numbers appear first"
+                                />
+
+                                <Input
+                                    label="Banner Link URL (Optional)"
+                                    value={formData.banner_link}
+                                    onChange={(e) => setFormData({ ...formData, banner_link: e.target.value })}
+                                    placeholder="e.g., /category/earrings"
+                                    helperText="Where the banner should navigate to"
                                 />
                             </div>
                         </div>

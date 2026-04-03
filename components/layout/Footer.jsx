@@ -1,8 +1,21 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Mail, Phone, MapPin } from 'lucide-react';
+import { getDocument } from '@/lib/supabase/db';
 
 export default function Footer() {
     const currentYear = new Date().getFullYear();
+    const [design, setDesign] = useState(null);
+
+    useEffect(() => {
+        async function fetchDesign() {
+            const { data } = await getDocument('settings', 'design');
+            if (data) setDesign(data);
+        }
+        fetchDesign();
+    }, []);
 
     return (
         <footer className="bg-neutral-900 text-neutral-300 pb-20 lg:pb-0">
@@ -12,8 +25,8 @@ export default function Footer() {
                     <div>
                         <div className="flex items-center gap-2 mb-4">
                             <img
-                                src="https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/logoaa.png?alt=media&token=3ceb0faa-b7ba-4440-ad8e-d48a08a2b57f"
-                                alt="CHAUDHARY ANANDBHAI VIRAMBHAI"
+                                src={design?.logo_url || "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/logoaa.png?alt=media&token=3ceb0faa-b7ba-4440-ad8e-d48a08a2b57f"}
+                                alt="YellowStone Jewellery"
                                 className="h-10 w-auto object-contain brightness-0 invert"
                             />
                         </div>
@@ -121,7 +134,7 @@ export default function Footer() {
                             <span>Nationwide Delivery</span>
                         </div>
                         <p className="text-xs text-neutral-400">
-                            © {currentYear} CHAUDHARY ANANDBHAI VIRAMBHAI. All rights reserved.
+                            {design?.footer_text || `© ${currentYear} YellowStone Jewellery. All rights reserved.`}
                         </p>
                     </div>
                 </div>

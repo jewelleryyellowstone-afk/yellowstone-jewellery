@@ -5,6 +5,8 @@ import { Save, Store, CreditCard, Truck, Lock, AlertTriangle, Database } from 'l
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { getDocument, setDocument } from '@/lib/supabase/db';
+import { uploadImage } from '@/lib/cloudinary/upload';
+import { Image as ImageIcon, Trash2 } from 'lucide-react';
 
 export default function AdminSettingsPage() {
     const [activeTab, setActiveTab] = useState('store');
@@ -42,6 +44,15 @@ export default function AdminSettingsPage() {
         password: '',
     });
 
+    const [designData, setDesignData] = useState({
+        logo_url: '',
+        header_text: 'Welcome to YellowStone Jewellery - Premium Artificial Jewellery',
+        footer_text: '© 2024 YellowStone Jewellery. All rights reserved.',
+        hero_image_url: '',
+        designFiles: { logo: null, hero: null },
+        designPreviews: { logo: null, hero: null }
+    });
+
     useEffect(() => {
         loadAllSettings();
     }, []);
@@ -56,6 +67,19 @@ export default function AdminSettingsPage() {
             // Load Logistics Settings
             const { data: logistics } = await getDocument('settings', 'logistics');
             if (logistics) setLogisticsData(prev => ({ ...prev, ...logistics }));
+
+            // Load Design Settings
+            const { data: design } = await getDocument('settings', 'design');
+            if (design) {
+                setDesignData(prev => ({
+                    ...prev,
+                    logo_url: design.logo_url || '',
+                    header_text: design.header_text || '',
+                    footer_text: design.footer_text || '',
+                    hero_image_url: design.hero_image_url || '',
+                    designPreviews: { logo: design.logo_url || null, hero: design.hero_image_url || null }
+                }));
+            }
 
         } catch (error) {
             console.error("Error loading settings:", error);
@@ -75,6 +99,29 @@ export default function AdminSettingsPage() {
             let dataToSave;
             if (activeTab === 'store') dataToSave = storeData;
             else if (activeTab === 'logistics') dataToSave = logisticsData;
+            else if (activeTab === 'design') {
+                let logoUrl = designData.logo_url;
+                let heroUrl = designData.hero_image_url;
+
+                if (designData.designFiles.logo) {
+                    const { url, error } = await uploadImage(designData.designFiles.logo, 'assets');
+                    if (error) throw new Error('Logo upload failed: ' + error);
+                    logoUrl = url;
+                }
+                
+                if (designData.designFiles.hero) {
+                    const { url, error } = await uploadImage(designData.designFiles.hero, 'assets');
+                    if (error) throw new Error('Hero jump upload failed: ' + error);
+                    heroUrl = url;
+                }
+
+                dataToSave = {
+                    logo_url: logoUrl,
+                    hero_image_url: heroUrl,
+                    header_text: designData.header_text,
+                    footer_text: designData.footer_text
+                };
+            }
 
             const { error } = await setDocument('settings', activeTab, dataToSave);
 
@@ -159,6 +206,18 @@ export default function AdminSettingsPage() {
                     Logistics
                 </button>
                 <button
+                    type="button"
+                    onClick={() => setActiveTab('design')}
+                    className={`flex items-center px-6 py-3 border-b-2 font-medium transition-colors ${activeTab === 'design'
+                        ? 'border-primary-500 text-primary-600'
+                        : 'border-transparent text-neutral-500 hover:text-neutral-700'
+                        }`}
+                >
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Appearance
+                </button>
+                <button
+                    type="button"
                     onClick={() => setActiveTab('advanced')}
                     className={`flex items-center px-6 py-3 border-b-2 font-medium transition-colors ${activeTab === 'advanced'
                         ? 'border-red-500 text-red-600'
@@ -305,6 +364,85 @@ export default function AdminSettingsPage() {
                                     onChange={(e) => setLogisticsData({ ...logisticsData, password: e.target.value })}
                                     placeholder="••••••••"
                                     helperText="Used to generate API token."
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* DESIGN TAB */}
+                {activeTab === 'design' && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="bg-white rounded-lg shadow-card p-6 space-y-4">
+                            <h2 className="font-semibold text-lg mb-4">Website Appearance</h2>
+                            
+                            <Input
+                                label="Top Announcement Header"
+                                value={designData.header_text}
+                                onChange={(e) => setDesignData(prev => ({ ...prev, header_text: e.target.value }))}
+                                placeholder="Free Shipping on all orders above ₹999!"
+                                helperText="This displays at the very top of all pages."
+                            />
+
+                            <div className="grid md:grid-cols-2 gap-6 mt-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 mb-2">Store Logo URL/Upload</label>
+                                    <div className="border-2 border-dashed border-neutral-300 p-4 rounded-lg hover:bg-neutral-50 text-center relative max-w-sm">
+                                        {designData.designPreviews.logo ? (
+                                            <div className="relative aspect-auto h-20 mb-2 flex items-center justify-center">
+                                                <img src={designData.designPreviews.logo} alt="Logo" className="max-h-full object-contain" />
+                                                <button type="button" onClick={() => setDesignData(prev => ({...prev, designPreviews: {...prev.designPreviews, logo: null}, designFiles: {...prev.designFiles, logo: null}, logo_url: ''}))} className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full"><Trash2 className="w-3 h-3" /></button>
+                                            </div>
+                                        ) : (
+                                            <label className="cursor-pointer">
+                                                <span className="text-sm text-neutral-500">Upload New Logo</span>
+                                                <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                                    const f = e.target.files[0];
+                                                    if(f) {
+                                                        const reader = new FileReader();
+                                                        reader.onload = ev => setDesignData(prev => ({...prev, designFiles: {...prev.designFiles, logo: f}, designPreviews: {...prev.designPreviews, logo: ev.target.result}}));
+                                                        reader.readAsDataURL(f);
+                                                    }
+                                                }} />
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 mb-2">Desktop Hero Image</label>
+                                    <div className="border-2 border-dashed border-neutral-300 p-4 rounded-lg hover:bg-neutral-50 text-center relative max-w-sm">
+                                        {designData.designPreviews.hero ? (
+                                            <div className="relative aspect-video mb-2 flex items-center justify-center overflow-hidden rounded-md">
+                                                <img src={designData.designPreviews.hero} alt="Hero" className="w-full h-full object-cover" />
+                                                <button type="button" onClick={() => setDesignData(prev => ({...prev, designPreviews: {...prev.designPreviews, hero: null}, designFiles: {...prev.designFiles, hero: null}, hero_image_url: ''}))} className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"><Trash2 className="w-3 h-3" /></button>
+                                            </div>
+                                        ) : (
+                                            <label className="cursor-pointer">
+                                                <span className="text-sm text-neutral-500">Upload Hero Banner</span>
+                                                <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                                    const f = e.target.files[0];
+                                                    if(f) {
+                                                        const reader = new FileReader();
+                                                        reader.onload = ev => setDesignData(prev => ({...prev, designFiles: {...prev.designFiles, hero: f}, designPreviews: {...prev.designPreviews, hero: ev.target.result}}));
+                                                        reader.readAsDataURL(f);
+                                                    }
+                                                }} />
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                                    Footer Text
+                                </label>
+                                <textarea
+                                    value={designData.footer_text}
+                                    onChange={(e) => setDesignData(prev => ({ ...prev, footer_text: e.target.value }))}
+                                    rows={2}
+                                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 />
                             </div>
                         </div>

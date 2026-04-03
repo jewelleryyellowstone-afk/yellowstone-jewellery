@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ShoppingBag, Search, Menu, User, ShoppingCart } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/lib/hooks/useCart';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getDocument } from '@/lib/supabase/db';
 
 export default function Header() {
     const pathname = usePathname();
@@ -13,9 +14,26 @@ export default function Header() {
     const { getItemCount } = useCart();
     const { isAuthenticated } = useAuth();
     const cartCount = getItemCount();
+    const [design, setDesign] = useState(null);
+
+    useEffect(() => {
+        async function fetchDesign() {
+            const { data } = await getDocument('settings', 'design');
+            if (data) setDesign(data);
+        }
+        fetchDesign();
+    }, []);
 
     return (
-        <header className="sticky top-0 z-40 bg-[#0e1729] border-b border-white/10 shadow-sm">
+        <header className="sticky top-0 z-40">
+            {/* Top Announcement Bar */}
+            {design?.header_text && (
+                <div className="bg-primary-600 text-white text-xs sm:text-sm font-medium py-2 px-4 text-center">
+                    {design.header_text}
+                </div>
+            )}
+            
+            <div className="bg-[#0e1729] border-b border-white/10 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
                     {/* Mobile Menu Button */}
@@ -30,8 +48,8 @@ export default function Header() {
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
                         <img
-                            src="https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/logoaa.png?alt=media&token=3ceb0faa-b7ba-4440-ad8e-d48a08a2b57f"
-                            alt="CHAUDHARY ANANDBHAI VIRAMBHAI"
+                            src={design?.logo_url || "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/logoaa.png?alt=media&token=3ceb0faa-b7ba-4440-ad8e-d48a08a2b57f"}
+                            alt="YellowStone Jewellery"
                             className="h-14 w-auto object-contain"
                         />
                     </Link>
@@ -151,6 +169,7 @@ export default function Header() {
                         </nav>
                     </div>
                 )}
+            </div>
             </div>
         </header>
     );

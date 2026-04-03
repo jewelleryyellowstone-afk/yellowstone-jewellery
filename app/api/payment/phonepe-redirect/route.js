@@ -59,10 +59,13 @@ export async function POST(request) {
 }
 
 async function handleRedirect(request) {
-    const reqOrigin = new URL(request.url).origin;
-    const baseUrl = (reqOrigin && !reqOrigin.includes('localhost') && reqOrigin !== 'null')
-        ? reqOrigin
-        : (process.env.NEXT_PUBLIC_SITE_URL || reqOrigin);
+    const host = request.headers.get('host') || 'localhost:3000';
+    const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https');
+    
+    let baseUrl = `${protocol}://${host}`;
+    if (!host.includes('localhost') && !host.includes('127.0.0.1')) {
+        baseUrl = process.env.NEXT_PUBLIC_SITE_URL || baseUrl;
+    }
 
     try {
         const { searchParams } = new URL(request.url);

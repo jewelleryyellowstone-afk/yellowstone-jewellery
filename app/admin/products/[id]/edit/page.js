@@ -247,12 +247,9 @@ export default function EditProductPage() {
                             required
                         >
                             <option value="">Select a category</option>
-                            <option value="Earrings">Earrings</option>
-                            <option value="Necklaces">Necklaces</option>
-                            <option value="Bangles">Bangles</option>
-                            <option value="Rings">Rings</option>
-                            <option value="Bridal">Bridal</option>
-                            <option value="Festive">Festive</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.name}>{cat.name}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
