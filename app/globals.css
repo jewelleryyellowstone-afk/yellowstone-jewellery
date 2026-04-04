@@ -84,3 +84,14 @@
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* Global Print Overrides (Ensures Next.js Root Layout components disappear) */
+@media print {
+  header, footer, aside, nav, #whatsapp-button, .bottom-nav {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

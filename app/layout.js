@@ -47,13 +47,17 @@ export default function RootLayout({ children }) {
             <body className="font-sans antialiased bg-neutral-50">
                 <CartProvider>
                     <div className="flex flex-col min-h-screen">
-                        <Header />
-                        <main className="flex-1 pb-16 lg:pb-0">
+                        <div className="print:hidden">
+                            <Header />
+                        </div>
+                        <main className="flex-1 pb-16 lg:pb-0 print:pb-0">
                             {children}
                         </main>
-                        <Footer />
-                        <BottomNav />
-                        <WhatsAppButton />
+                        <div className="print:hidden">
+                            <Footer />
+                            <BottomNav />
+                            <WhatsAppButton />
+                        </div>
                     </div>
                 </CartProvider>
             </body>

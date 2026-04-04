@@ -176,10 +176,28 @@ export default function CheckoutPage() {
                 payment_method: document.querySelector('input[name="payment"]:checked')?.value || 'online',
             };
 
-            const { id: orderId } = await createDocument('orders', orderData);
+            let { id: orderId, error: createError } = await createDocument('orders', orderData);
+
+            // AUTO-RECOVERY for missing Supabase schema columns
+            if (!orderId) {
+                console.warn('First insert failed (likely due to missing GST columns in Supabase):', createError);
+                
+                // Construct a fallback payload matching the exact older schema
+                const fallbackData = { ...orderData };
+                delete fallbackData.tax_amount;
+                delete fallbackData.tax_percentage;
+                delete fallbackData.shipping_cost;
+                delete fallbackData.discount;
+                delete fallbackData.total;
+                
+                // Retry blindly
+                const retryRes = await createDocument('orders', fallbackData);
+                orderId = retryRes.id;
+                createError = retryRes.error;
+            }
 
             if (!orderId) {
-                alert('Order creation failed. Please check inputs or try again.');
+                alert(`Order creation failed. ${createError || 'Please check inputs or try again.'}`);
                 setLoading(false);
                 return;
             }

@@ -56,11 +56,14 @@ export default function ShippingLabelPrintPage() {
     return (
         <div className="bg-neutral-200 min-h-screen text-black flex flex-col items-center py-8 print:py-0 print:bg-white">
             {/* Print action bar */}
-            <div className="print:hidden bg-white p-4 flex justify-between items-center border rounded shadow mb-8 w-full max-w-[4in]">
+            <div className="print:hidden bg-white p-4 flex flex-col sm:flex-row justify-between items-center border rounded shadow mb-8 w-full max-w-[4in] gap-4">
                 <button onClick={() => router.back()} className="px-3 py-1.5 border border-neutral-300 rounded hover:bg-neutral-50 text-sm font-medium">
                     ← Back
                 </button>
                 <div className="flex gap-2">
+                    <button onClick={() => window.print()} className="px-3 py-1.5 bg-neutral-800 text-white rounded hover:bg-black text-sm font-bold" title="Destination: Save as PDF">
+                        PDF
+                    </button>
                     <button onClick={() => window.print()} className="px-3 py-1.5 bg-primary-600 text-white rounded hover:bg-primary-700 text-sm font-bold">
                         Print Label
                     </button>
@@ -68,7 +71,7 @@ export default function ShippingLabelPrintPage() {
             </div>
 
             {/* 4x6 Label Canvas (100mm x 150mm roughly) */}
-            <div className="bg-white border-2 border-black overflow-hidden relative" style={{ width: '4in', height: '6in' }}>
+            <div className="bg-white border-2 border-black overflow-hidden relative print:border-0" style={{ width: '4in', height: '6in' }}>
                 
                 {/* Header / Routing */}
                 <div className="border-b-2 border-black flex h-[1in]">
@@ -146,7 +149,7 @@ export default function ShippingLabelPrintPage() {
                     }
                     @page {
                         size: 4in 6in;
-                        margin: 0;
+                        margin: 0; /* Important: Removes the browser headers and footers (date, URL, page title)! */
                     }
                     /* Ensure full darkness on print */
                     * {

@@ -55,9 +55,9 @@ export default function AdminLayout({ children }) {
     ];
 
     return (
-        <div className="flex min-h-screen bg-neutral-50">
+        <div className="flex min-h-screen bg-neutral-50 print:bg-white">
             {/* Sidebar */}
-            <aside className="w-64 bg-neutral-900 text-white flex-shrink-0 hidden lg:block">
+            <aside className="w-64 bg-neutral-900 text-white flex-shrink-0 hidden lg:block print:hidden">
                 <div className="p-6">
                     <h1 className="text-xl font-display font-bold">Admin Panel</h1>
                     <p className="text-sm text-neutral-400 mt-1">YellowStone</p>
@@ -80,9 +80,9 @@ export default function AdminLayout({ children }) {
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col print:block">
                 {/* Top Bar */}
-                <header className="bg-white border-b border-neutral-200 px-6 py-4">
+                <header className="bg-white border-b border-neutral-200 px-6 py-4 print:hidden">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold">Admin Dashboard</h2>
                         <Link href="/account" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
