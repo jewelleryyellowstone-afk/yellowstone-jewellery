@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Filter, Eye, Package, Download } from 'lucide-react';
-import { getAllDocuments } from '@/lib/supabase/db';
+import { Search, Filter, Eye, Package, Download, XCircle, Trash2 } from 'lucide-react';
+import { getAllDocuments, updateDocument } from '@/lib/supabase/db';
+import { supabase } from '@/lib/supabase/client';
 import { formatPrice, formatDateTime, getOrderStatusColor, formatDate } from '@/lib/utils/format';
 import Button from '@/components/ui/Button';
 
@@ -12,6 +13,7 @@ export default function AdminOrdersPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [paymentFilter, setPaymentFilter] = useState('all');
 
     useEffect(() => {
         loadOrders();
@@ -34,9 +36,24 @@ export default function AdminOrdersPage() {
             order.id.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+        const matchesPayment = paymentFilter === 'all' || order.payment_status === paymentFilter;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus && matchesPayment;
     });
+
+    const handleQuickCancel = async (orderId) => {
+        if (!confirm('Are you sure you want to cancel this order?')) return;
+        setLoading(true);
+        await updateDocument('orders', orderId, { status: 'cancelled' });
+        loadOrders();
+    };
+
+    const handleQuickDelete = async (orderId) => {
+        if (!confirm('WARNING: Are you sure you want to permanently delete this order? This cannot be undone.')) return;
+        setLoading(true);
+        await supabase.from('orders').delete().eq('id', orderId);
+        loadOrders();
+    };
 
     const handleExport = (type) => {
         if (filteredOrders.length === 0) {
@@ -160,9 +177,9 @@ export default function AdminOrdersPage() {
                 </button>
             </div>
 
-            {/* Search Bar */}
-            <div className="bg-white rounded-lg shadow-card p-4 mb-6">
-                <div className="relative">
+            {/* Search Bar & Payment Filter */}
+            <div className="bg-white rounded-lg shadow-card p-4 mb-6 flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                     <input
                         type="text"
@@ -171,6 +188,20 @@ export default function AdminOrdersPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
+                </div>
+                <div className="md:w-64 flex items-center gap-2">
+                    <Filter className="w-5 h-5 text-neutral-500" />
+                    <select
+                        value={paymentFilter}
+                        onChange={(e) => setPaymentFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                    >
+                        <option value="all">All Payment Statuses</option>
+                        <option value="paid">Paid successfully</option>
+                        <option value="pending">Payment Pending (COD/Open)</option>
+                        <option value="failed">Failed / Abandoned</option>
+                        <option value="refunded">Refunded</option>
+                    </select>
                 </div>
             </div>
 
@@ -229,16 +260,40 @@ export default function AdminOrdersPage() {
                                             </p>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOrderStatusColor(order.status)}`}>
-                                                {order.status || 'pending'}
-                                            </span>
+                                            {order.payment_status === 'failed' ? (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                    Payment Failed
+                                                </span>
+                                            ) : (
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOrderStatusColor(order.status)}`}>
+                                                    {order.status || 'pending'}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <Link href={`/admin/orders/${order.id}`}>
-                                                <button className="p-2 text-neutral-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
-                                                    <Eye className="w-4 h-4" />
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Link href={`/admin/orders/${order.id}`}>
+                                                    <button title="View Details" className="p-2 text-neutral-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                </Link>
+                                                {order.status !== 'cancelled' && (
+                                                    <button 
+                                                        title="Cancel Order"
+                                                        onClick={() => handleQuickCancel(order.id)}
+                                                        className="p-2 text-neutral-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                                                    >
+                                                        <XCircle className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    title="Delete Permanently"
+                                                    onClick={() => handleQuickDelete(order.id)}
+                                                    className="p-2 text-neutral-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
-                                            </Link>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

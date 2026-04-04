@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Package, MapPin, CreditCard, User, Phone, Mail, TruckIcon } from 'lucide-react';
+import { Package, MapPin, CreditCard, User, Phone, Mail, TruckIcon, Printer } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { getDocument, updateDocument } from '@/lib/supabase/db';
 import { getIdToken } from '@/lib/supabase/auth';
@@ -210,12 +210,24 @@ export default function OrderDetailPage() {
 
     return (
         <div className="max-w-5xl">
-            <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => router.push('/admin/orders')}>
-                    ←
-                </Button>
-                Order #{order.id.slice(0, 8).toUpperCase()}
-            </h1>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => router.push('/admin/orders')}>
+                        ←
+                    </Button>
+                    Order #{order.id.slice(0, 8).toUpperCase()}
+                </h1>
+                <div className="flex gap-2">
+                    <Button variant="outline" href={`/admin/orders/${order.id}/invoice`} target="_blank">
+                        <Printer className="w-4 h-4 mr-2" />
+                        Invoice
+                    </Button>
+                    <Button variant="outline" href={`/admin/orders/${order.id}/label`} target="_blank">
+                        <Printer className="w-4 h-4 mr-2" />
+                        Shipping Label
+                    </Button>
+                </div>
+            </div>
 
             <div className="grid lg:grid-cols-3 gap-6">
                 {/* Main Content */}
@@ -368,9 +380,15 @@ export default function OrderDetailPage() {
                         <h2 className="font-semibold text-lg mb-4">Order Status</h2>
 
                         <div className="mb-6">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getOrderStatusColor(order.status)}`}>
-                                {order.status || 'pending'}
-                            </span>
+                            {order.payment_status === 'failed' ? (
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                    Payment Failed
+                                </span>
+                            ) : (
+                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getOrderStatusColor(order.status)}`}>
+                                    {order.status || 'pending'}
+                                </span>
+                            )}
                         </div>
 
                         {order.status !== 'delivered' && order.status !== 'cancelled' && (

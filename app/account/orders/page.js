@@ -25,7 +25,10 @@ export default function CustomerOrdersPage() {
 
     async function loadOrders() {
         const { data } = await supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-        setOrders(data || []);
+        
+        // Filter out explicitly failed checkouts so users only see valid order history
+        const validOrders = (data || []).filter(o => o.payment_status !== 'failed');
+        setOrders(validOrders);
         setLoading(false);
     }
 
@@ -71,8 +74,8 @@ export default function CustomerOrdersPage() {
                                             <span className="font-display font-bold text-lg text-neutral-900">
                                                 Order #{order.id.slice(0, 8).toUpperCase()}
                                             </span>
-                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${getOrderStatusColor(order.status)}`}>
-                                                {order.status || 'pending'}
+                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${order.payment_status === 'failed' ? 'bg-red-100 text-red-700' : getOrderStatusColor(order.status)}`}>
+                                                {order.payment_status === 'failed' ? 'Failed' : (order.status || 'pending')}
                                             </span>
                                         </div>
                                         <p className="text-sm text-neutral-500">

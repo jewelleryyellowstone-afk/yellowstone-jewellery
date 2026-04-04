@@ -24,11 +24,20 @@ export default function Footer() {
                     {/* Brand */}
                     <div>
                         <div className="flex items-center gap-2 mb-4">
-                            <img
-                                src={design?.logo_url || "https://firebasestorage.googleapis.com/v0/b/studio-9211767550-84917.firebasestorage.app/o/logoaa.png?alt=media&token=3ceb0faa-b7ba-4440-ad8e-d48a08a2b57f"}
-                                alt="YellowStone Jewellery"
-                                className="h-10 w-auto object-contain brightness-0 invert"
-                            />
+                            {design?.logo_url ? (
+                                <img
+                                    src={design.logo_url}
+                                    alt="YellowStone Jewellery"
+                                    className="h-10 w-auto object-contain brightness-0 invert"
+                                />
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                                        <span className="text-white font-bold">Y</span>
+                                    </div>
+                                    <span className="text-white font-display font-bold text-lg">YellowStone</span>
+                                </div>
+                            )}
                         </div>
                         <p className="text-sm text-neutral-400">
                             Premium artificial jewellery for every occasion. Trusted by women across India for over 10 years.

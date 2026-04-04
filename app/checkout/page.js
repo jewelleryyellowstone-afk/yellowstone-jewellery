@@ -54,7 +54,7 @@ function SavedAddressSelector({ userId, onSelect }) {
 export default function CheckoutPage() {
     const router = useRouter();
     const { user } = useAuth();
-    const { cart, getTotal, clearCart, loading: cartLoading } = useCart();
+    const { cart, getSubtotal, getShippingCost, getTaxAmount, gstSettings, getTotal, clearCart, loading: cartLoading } = useCart();
     const {
         discountCode, setDiscountCode, appliedDiscount, discountError,
         validating, applyDiscountCode, removeDiscount, calculateTotal
@@ -165,7 +165,12 @@ export default function CheckoutPage() {
                     pincode: formData.pincode,
                 },
                 items: cart,
-                subtotal: getTotal(),
+                subtotal: getSubtotal(), // Base subtotal before taxes/shipping
+                tax_amount: getTaxAmount(),
+                tax_percentage: gstSettings?.enabled ? gstSettings.tax_percentage : 0,
+                shipping_cost: getShippingCost(),
+                discount: calculateTotal(getTotal()).discount || 0,
+                total: calculateTotal(getTotal()).total,
                 status: 'pending',
                 payment_status: 'pending',
                 payment_method: document.querySelector('input[name="payment"]:checked')?.value || 'online',
@@ -443,8 +448,20 @@ export default function CheckoutPage() {
                             )}
                         </div>
 
-                        <div className="border-t pt-4 mt-4">
-                            <div className="flex justify-between font-bold text-lg">
+                        <div className="border-t pt-4 mt-4 space-y-2">
+                            <div className="flex justify-between text-neutral-600 text-sm">
+                                <span>Shipping</span>
+                                <span>{getShippingCost() === 0 ? 'FREE' : formatPrice(getShippingCost())}</span>
+                            </div>
+                            
+                            {gstSettings?.enabled && (
+                                <div className="flex justify-between text-neutral-600 text-sm">
+                                    <span>Estimated Tax ({gstSettings.tax_percentage}%)</span>
+                                    <span>{formatPrice(getTaxAmount())}</span>
+                                </div>
+                            )}
+
+                            <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
                                 <span>Total</span>
                                 <span>{formatPrice(calculateTotal(getTotal()).total)}</span>
                             </div>

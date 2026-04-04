@@ -12,7 +12,8 @@ import {
     BarChart3,
     Image as ImageIcon,
     Settings,
-    Grid
+    Grid,
+    Users
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 
@@ -42,6 +43,7 @@ export default function AdminLayout({ children }) {
 
     const navItems = [
         { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+        { href: '/admin/customers', icon: Users, label: 'Customers' },
         { href: '/admin/products', icon: ShoppingBag, label: 'Products' },
         { href: '/admin/categories', icon: Grid, label: 'Categories' },
         { href: '/admin/orders', icon: Package, label: 'Orders' },

@@ -38,7 +38,11 @@ export default function LoginPage() {
             } else {
                 const { error: signinError } = await signIn(formData.email, formData.password);
                 if (signinError) {
-                    setError(signinError);
+                    if (signinError.includes('Invalid login credentials')) {
+                        setError('Invalid credentials. Note: If you registered before our system upgrade, your old password may not work. Please Sign Up again.');
+                    } else {
+                        setError(signinError);
+                    }
                 } else {
                     router.push('/account');
                 }

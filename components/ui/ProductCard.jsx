@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import Card, { CardImage, CardContent, CardTitle, CardPrice } from './Card';
 import { Heart } from 'lucide-react';
@@ -6,6 +8,7 @@ import { useState } from 'react';
 /**
  * Product Card Component
  * Displays product with image, name, price, and quick actions
+ * Handles both camelCase (originalPrice) and snake_case (original_price) field names
  */
 export default function ProductCard({ product }) {
     const [isWishlisted, setIsWishlisted] = useState(false);
@@ -16,6 +19,12 @@ export default function ProductCard({ product }) {
         setIsWishlisted(!isWishlisted);
         // TODO: Implement wishlist functionality
     };
+
+    // Handle both camelCase and snake_case field names from DB
+    const originalPrice = product.originalPrice || product.original_price;
+    const discountPercent = originalPrice && originalPrice > product.price
+        ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
+        : null;
 
     return (
         <Link href={`/products/${product.id}`}>
@@ -32,9 +41,9 @@ export default function ProductCard({ product }) {
                 </button>
 
                 {/* Discount Badge */}
-                {product.originalPrice && product.originalPrice > product.price && (
+                {discountPercent && (
                     <div className="absolute top-2 left-2 z-10 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
-                        {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                        {discountPercent}% OFF
                     </div>
                 )}
 
@@ -50,7 +59,7 @@ export default function ProductCard({ product }) {
 
                     <CardPrice
                         price={product.price}
-                        originalPrice={product.originalPrice}
+                        originalPrice={originalPrice}
                     />
 
                     {/* Stock Status */}

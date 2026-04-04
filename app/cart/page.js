@@ -17,12 +17,15 @@ export default function CartPage() {
         getSubtotal,
         getSavings,
         getShippingCost,
+        getTaxAmount,
         getTotal,
+        gstSettings,
     } = useCart();
 
     const subtotal = getSubtotal();
     const savings = getSavings();
     const shippingCost = getShippingCost();
+    const taxAmount = getTaxAmount();
     const total = getTotal();
     const freeShippingThreshold = parseFloat(process.env.NEXT_PUBLIC_FREE_SHIPPING_THRESHOLD || 999);
     const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
@@ -167,6 +170,13 @@ export default function CartPage() {
                                 <span>Shipping</span>
                                 <span>{shippingCost === 0 ? 'FREE' : formatPrice(shippingCost)}</span>
                             </div>
+
+                            {gstSettings?.enabled && (
+                                <div className="flex justify-between text-neutral-600">
+                                    <span>Estimated Tax ({gstSettings.tax_percentage}%)</span>
+                                    <span>{formatPrice(taxAmount)}</span>
+                                </div>
+                            )}
 
                             <div className="border-t border-neutral-200 pt-3 flex justify-between font-bold text-lg">
                                 <span>Total</span>

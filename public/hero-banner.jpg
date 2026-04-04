@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0e1729"/>
+      <stop offset="100%" style="stop-color:#1a2a4a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <!-- Decorative circles -->
+  <circle cx="1600" cy="200" r="400" fill="rgba(245,158,11,0.05)"/>
+  <circle cx="1700" cy="900" r="300" fill="rgba(245,158,11,0.05)"/>
+  <circle cx="100" cy="100" r="200" fill="rgba(255,255,255,0.02)"/>
+  <!-- Diamond shape decoration -->
+  <polygon points="960,100 1060,200 960,300 860,200" fill="rgba(245,158,11,0.1)" transform="rotate(0, 960, 200)"/>
+  <!-- Text -->
+  <text x="960" y="440" font-family="Georgia, serif" font-size="80" font-weight="bold" fill="#ffffff" text-anchor="middle">YellowStone Jewellery</text>
+  <text x="960" y="530" font-family="Georgia, serif" font-size="36" fill="#f59e0b" text-anchor="middle">Premium Artificial Jewellery</text>
+  <text x="960" y="600" font-family="Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.7)" text-anchor="middle">Crafted with love, designed for you</text>
+  <!-- Decorative line -->
+  <rect x="760" y="560" width="400" height="2" fill="url(#accent)" rx="1"/>
+</svg>

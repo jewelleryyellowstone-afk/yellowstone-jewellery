@@ -70,17 +70,14 @@ export async function POST(request) {
             return NextResponse.json({ success: true }, { status: 200 });
         }
 
-        let orderId = merchantTransactionId;
-        if (merchantTransactionId.includes('_')) {
-             orderId = merchantTransactionId.split('_')[0];
-        }
-
-        // Idempotency check: verify current status first
-        const { data: orderData } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
+        // Idempotency check: verify current status first by looking up the EXACT transaction ID
+        const { data: orderData } = await supabaseAdmin.from('orders').select('*').eq('payment_id', merchantTransactionId).single();
         if (!orderData) {
-            console.warn(`PhonePe Webhook Warning: Order ${orderId} not found`);
+            console.warn(`PhonePe Webhook Warning: Order with transaction ${merchantTransactionId} not found`);
             return NextResponse.json({ success: true, message: 'Order not found' }, { status: 200 });
         }
+
+        const orderId = orderData.id;
 
         if (orderData.payment_status === 'paid') {
             // Idempotent return - already processed successfully

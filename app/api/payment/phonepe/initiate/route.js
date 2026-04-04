@@ -131,7 +131,7 @@ export async function POST(request) {
         // --- 7. Save transaction ID on order ---
         try {
             await supabaseAdmin.from('orders').update({
-                merchant_transaction_id: merchantOrderId,
+                payment_id: merchantOrderId,
                 payment_status: 'initiated',
                 payment_provider: 'phonepe',
             }).eq('id', orderId);

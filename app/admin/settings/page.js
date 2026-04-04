@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Store, CreditCard, Truck, Lock, AlertTriangle, Database } from 'lucide-react';
+import { Save, Store, CreditCard, Truck, Lock, AlertTriangle, Database, Calculator } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { getDocument, setDocument } from '@/lib/supabase/db';
@@ -53,6 +53,13 @@ export default function AdminSettingsPage() {
         designPreviews: { logo: null, hero: null }
     });
 
+    const [gstData, setGstData] = useState({
+        enabled: false,
+        gstin: '',
+        state_code: '',
+        tax_percentage: 3,
+    });
+
     useEffect(() => {
         loadAllSettings();
     }, []);
@@ -81,6 +88,10 @@ export default function AdminSettingsPage() {
                 }));
             }
 
+            // Load GST Settings
+            const { data: gstInfo } = await getDocument('settings', 'gst');
+            if (gstInfo) setGstData(prev => ({ ...prev, ...gstInfo }));
+
         } catch (error) {
             console.error("Error loading settings:", error);
             alert("Failed to load settings. Check console.");
@@ -99,6 +110,7 @@ export default function AdminSettingsPage() {
             let dataToSave;
             if (activeTab === 'store') dataToSave = storeData;
             else if (activeTab === 'logistics') dataToSave = logisticsData;
+            else if (activeTab === 'tax') dataToSave = gstData;
             else if (activeTab === 'design') {
                 let logoUrl = designData.logo_url;
                 let heroUrl = designData.hero_image_url;
@@ -204,6 +216,17 @@ export default function AdminSettingsPage() {
                 >
                     <Truck className="w-4 h-4 mr-2" />
                     Logistics
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('tax')}
+                    className={`flex items-center px-6 py-3 border-b-2 font-medium transition-colors ${activeTab === 'tax'
+                        ? 'border-primary-500 text-primary-600'
+                        : 'border-transparent text-neutral-500 hover:text-neutral-700'
+                        }`}
+                >
+                    <Calculator className="w-4 h-4 mr-2" />
+                    Tax & GST
                 </button>
                 <button
                     type="button"
@@ -321,7 +344,69 @@ export default function AdminSettingsPage() {
                     </div>
                 )}
 
+                {/* TAX TAB */}
+                {activeTab === 'tax' && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="bg-white rounded-lg shadow-card p-6 border-l-4 border-l-green-500">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h2 className="font-semibold text-lg flex items-center gap-2">
+                                        <Calculator className="w-4 h-4 text-neutral-500" />
+                                        GST Configuration
+                                    </h2>
+                                    <p className="text-sm text-neutral-500 mt-1">
+                                        Enable automated tax calculations during checkout based on your state and tax bracket.
+                                    </p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer mt-1">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={gstData.enabled}
+                                        onChange={(e) => setGstData({ ...gstData, enabled: e.target.checked })}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                </label>
+                            </div>
 
+                            {gstData.enabled && (
+                                <div className="space-y-4 animate-in fade-in duration-300">
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <Input
+                                            label="Business GSTIN Number"
+                                            value={gstData.gstin}
+                                            onChange={(e) => setGstData({ ...gstData, gstin: e.target.value })}
+                                            placeholder="22AAAAA0000A1Z5"
+                                            required={gstData.enabled}
+                                        />
+                                        <Input
+                                            label="Home State Code"
+                                            value={gstData.state_code}
+                                            onChange={(e) => setGstData({ ...gstData, state_code: e.target.value })}
+                                            placeholder="e.g. 24 for Gujarat, 27 for Maharashtra"
+                                            required={gstData.enabled}
+                                        />
+                                    </div>
+                                    <div className="grid md:grid-cols-2 gap-4 mt-2">
+                                        <Input
+                                            label="Tax Rate Percentage (%)"
+                                            type="number"
+                                            step="0.1"
+                                            value={gstData.tax_percentage}
+                                            onChange={(e) => setGstData({ ...gstData, tax_percentage: parseFloat(e.target.value) || 0 })}
+                                            placeholder="3"
+                                            helperText="Standard rate for jewellery is usually 3%"
+                                            required={gstData.enabled}
+                                        />
+                                    </div>
+                                    <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
+                                        <strong>Note:</strong> When enabled, this percentage will be automatically applied to the cart subtotal at checkout. Tax amounts will also be cleanly divided into CGST/SGST (same state) or IGST (inter-state) on printable invoices automatically.
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* LOGISTICS TAB */}
                 {activeTab === 'logistics' && (

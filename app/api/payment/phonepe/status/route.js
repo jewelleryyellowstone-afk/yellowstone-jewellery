@@ -26,9 +26,7 @@ export async function GET(request) {
 
         // Standardise orderId from merchantTransactionId
         let orderId = transactionId;
-        if (transactionId.includes('_')) {
-            orderId = transactionId.split('_')[0];
-        }
+        // removed the invalid .split logic
 
         const endpoint = `/pg/v1/status/${merchantId}/${transactionId}`; // This is the path part for checksum
 
@@ -55,9 +53,10 @@ export async function GET(request) {
         if (data.success && data.data) {
             const state = data.data.state;
             
-            const { data: orderData } = await supabaseAdmin.from('orders').select('*').eq('id', orderId).single();
+            const { data: orderData } = await supabaseAdmin.from('orders').select('*').eq('payment_id', transactionId).single();
             
             if (orderData) {
+                const orderId = orderData.id;
                 // Keep synchronization only if our internal state is behind
                 if (orderData.payment_status !== 'paid' && state === 'COMPLETED') {
                      await supabaseAdmin.from('orders').update({

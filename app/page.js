@@ -1,41 +1,29 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronRight, ShieldCheck, RotateCcw, Truck } from 'lucide-react';
 import ProductCard from '@/components/ui/ProductCard';
 import Button from '@/components/ui/Button';
 import { getProducts, getCategories, getDocument } from '@/lib/supabase/db';
 
-export default function HomePage() {
-    const [featuredProducts, setFeaturedProducts] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [design, setDesign] = useState(null);
+export default async function HomePage() {
+    // Determine static setting default
+    let design = null;
+    let featuredProducts = [];
+    let categories = [];
 
-    useEffect(() => {
-        async function loadData() {
-            // Load featured/bestseller products
-            // Load latest products (replacing 'featured' filter to show all)
-            const { data: products } = await getProducts(
-                [], // No filter, just get all/latest
-                { limitCount: 8, orderByField: 'created_at', orderDirection: 'desc' }
-            );
+    try {
+        // Fetch data serially or in parallel (parallel is faster)
+        const [productsRes, catsRes, designRes] = await Promise.all([
+            getProducts([], { limitCount: 8, orderByField: 'created_at', orderDirection: 'desc' }),
+            getCategories(),
+            getDocument('settings', 'design')
+        ]);
 
-            // Load categories
-            const { data: cats } = await getCategories();
-
-            // Load design settings
-            const { data: designSettings } = await getDocument('settings', 'design');
-
-            setFeaturedProducts(products || []);
-            setCategories(cats || []);
-            if (designSettings) setDesign(designSettings);
-            setLoading(false);
-        }
-
-        loadData();
-    }, []);
+        featuredProducts = productsRes.data || [];
+        categories = catsRes.data || [];
+        if (designRes.data) design = designRes.data;
+    } catch (error) {
+        console.error("Error loading home data", error);
+    }
 
     return (
         <div className="min-h-screen">
@@ -45,7 +33,7 @@ export default function HomePage() {
                 {/* Background Image */}
                 <div className="absolute inset-0 z-0">
                     <img
-                        src={design?.hero_image_url || "/hero-banner.jpg"}
+                        src={design?.hero_image_url || "/hero-banner.svg"}
                         alt="YellowStone Jewellery"
                         className="w-full h-full object-cover"
                     />
@@ -62,11 +50,11 @@ export default function HomePage() {
                             Discover exquisite artificial jewellery for every occasion. Crafted with love, designed for you.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Button size="lg" asChild>
-                                <Link href="/products">Shop Now</Link>
+                            <Button size="lg" href="/products">
+                                Shop Now
                             </Button>
-                            <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-black" asChild>
-                                <Link href="/categories">Browse Categories</Link>
+                            <Button size="lg" variant="outline" href="/categories" className="bg-transparent text-white border-white hover:bg-white hover:text-black">
+                                Browse Categories
                             </Button>
                         </div>
                     </div>
@@ -88,13 +76,7 @@ export default function HomePage() {
                     </Link>
                 </div>
 
-                {loading ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                        {[...Array(6)].map((_, i) => (
-                            <div key={i} className="skeleton h-32 rounded-lg"></div>
-                        ))}
-                    </div>
-                ) : categories.length > 0 ? (
+                {categories.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                         {categories.map((category) => (
                             <Link
@@ -161,13 +143,7 @@ export default function HomePage() {
                         </Link>
                     </div>
 
-                    {loading ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                            {[...Array(8)].map((_, i) => (
-                                <div key={i} className="skeleton aspect-square rounded-lg"></div>
-                            ))}
-                        </div>
-                    ) : featuredProducts.length > 0 ? (
+                    {featuredProducts.length > 0 ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
                             {featuredProducts.map((product) => (
                                 <ProductCard key={product.id} product={product} />
@@ -176,8 +152,8 @@ export default function HomePage() {
                     ) : (
                         <div className="text-center py-12">
                             <p className="text-neutral-500">No products available yet.</p>
-                            <Button className="mt-4" asChild>
-                                <Link href="/products">Explore All Products</Link>
+                            <Button className="mt-4" href="/products">
+                                Explore All Products
                             </Button>
                         </div>
                     )}
@@ -194,8 +170,8 @@ export default function HomePage() {
                         <p className="text-lg mb-6 opacity-90">
                             Get up to 50% OFF on selected jewellery. Shop now before it's too late!
                         </p>
-                        <Button size="lg" variant="secondary" asChild>
-                            <Link href="/offers">Shop Offers</Link>
+                        <Button size="lg" variant="secondary" href="/offers">
+                            Shop Offers
                         </Button>
                     </div>
                 </div>
