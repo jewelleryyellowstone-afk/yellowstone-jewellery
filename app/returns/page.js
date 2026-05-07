@@ -7,7 +7,7 @@ export default function ReturnsPage() {
             <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm p-8 border border-neutral-100">
                 <div className="prose prose-neutral max-w-none text-neutral-600">
 
-                    {/* PhonePe Mandatory Requirements */}
+                    {/* Payment Gateway Mandatory Requirements */}
                     <div className="bg-amber-50 border-l-4 border-amber-500 p-6 mb-8 rounded-r-lg">
                         <h3 className="font-bold text-amber-900 mb-4 flex items-center gap-2">
                             <span className="text-xl">⚠️</span>

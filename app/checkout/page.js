@@ -225,9 +225,9 @@ export default function CheckoutPage() {
                 clearCart();
                 router.push(`/order-success?orderId=${orderId}`);
             } else {
-                // Online payment via PhonePe
+                // Online payment via RockyPayz
                 try {
-                    const response = await fetch('/api/payment/phonepe/initiate', {
+                    const response = await fetch('/api/payment/rockypayz/initiate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -360,8 +360,8 @@ export default function CheckoutPage() {
                                         <label className="flex items-center gap-3 cursor-pointer">
                                             <input type="radio" name="payment" value="online" defaultChecked />
                                             <div>
-                                                <p className="font-medium">Online Payment (PhonePe)</p>
-                                                <p className="text-sm text-neutral-600">UPI, Cards, Net Banking</p>
+                                                <p className="font-medium">Online Payment (UPI / Card / Net Banking)</p>
+                                                <p className="text-sm text-neutral-600">Secured by RockyPayz</p>
                                             </div>
                                         </label>
                                     </div>
