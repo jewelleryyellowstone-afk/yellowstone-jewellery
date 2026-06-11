@@ -246,7 +246,36 @@ export default function CheckoutPage() {
                     }
                 } catch (error) {
                     console.error('Payment initialization failed:', error);
-                    alert('Payment failed: ' + error.message);
+                    
+                    const fallbackToCOD = window.confirm(
+                        `Online payment is currently unavailable (${error.message}).\n\nWould you like to complete this order using Cash on Delivery (COD) instead?`
+                    );
+                    
+                    if (fallbackToCOD) {
+                        try {
+                            // Update order to COD
+                            await updateDocument('orders', orderId, {
+                                payment_method: 'cod'
+                            });
+                            
+                            // Trigger Notification
+                            await fetch('/api/notifications', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ orderId, type: 'order_placed' }),
+                            });
+                            
+                            setOrderPlaced(true);
+                            clearCart();
+                            router.push(`/order-success?orderId=${orderId}`);
+                            return;
+                        } catch (updateError) {
+                            console.error('Failed to update to COD:', updateError);
+                            alert('Failed to switch to COD. Please try again.');
+                        }
+                    } else {
+                        alert('Order placed but payment failed. Please try again or contact support.');
+                    }
                     setLoading(false);
                 }
             }
