@@ -225,14 +225,22 @@ export default function CheckoutPage() {
                 clearCart();
                 router.push(`/order-success?orderId=${orderId}`);
             } else {
-                // Online payment via RockyPayz
+                // Online payment via Devorix Solutions
                 try {
-                    const response = await fetch('/api/payment/rockypayz/initiate', {
+                    const finalAmount = getTotal();
+                    if (finalAmount < 100) {
+                        throw new Error("Devorix minimum payment amount is ₹100. Please use Cash on Delivery for smaller orders.");
+                    }
+                    
+                    const response = await fetch('/api/payment/devorix/initiate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             orderId,
                             amount: getTotal(),
+                            customerName: formData.customerName,
+                            customerEmail: formData.email,
+                            customerMobile: formData.phone,
                         }),
                     });
                     
@@ -240,7 +248,11 @@ export default function CheckoutPage() {
                     
                     if (data.url) {
                         clearCart(); // Clear cart to avoid stale states
-                        window.location.href = data.url;
+                        if (data.type === 'upi_intent') {
+                            router.push(`/payment/upi?intent=${encodeURIComponent(data.url)}&orderId=${orderId}`);
+                        } else {
+                            window.location.href = data.url;
+                        }
                     } else {
                         throw new Error(data.error || 'Failed to initialize payment');
                     }
@@ -390,7 +402,7 @@ export default function CheckoutPage() {
                                             <input type="radio" name="payment" value="online" defaultChecked />
                                             <div>
                                                 <p className="font-medium">Online Payment (UPI / Card / Net Banking)</p>
-                                                <p className="text-sm text-neutral-600">Secured by RockyPayz</p>
+                                                <p className="text-sm text-neutral-600">Secured by Devorix Solutions</p>
                                             </div>
                                         </label>
                                     </div>
