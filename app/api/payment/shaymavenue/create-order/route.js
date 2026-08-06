@@ -44,11 +44,22 @@ export async function POST(req) {
         const data = await res.json();
         console.log('Shaymavenue create_order Response:', JSON.stringify(data, null, 2));
 
-        if (!res.ok || data.status === false || data.result === 'failed' || data.status === 'failed') {
+        const isFailed = !res.ok ||
+                         data.statuscode === false ||
+                         data.status === false ||
+                         data.status === 'failed' ||
+                         data.status === 'Failed' ||
+                         data.result === 'failed' ||
+                         data.result === 'Failed' ||
+                         data.data?.status === 'Failed' ||
+                         data.data?.status === 'failed';
+
+        if (isFailed) {
             console.error('Shaymavenue Create Order Failed:', data);
+            const errorMsg = data.msg || data.message || data.error || 'Failed to create payment order on Shaymavenue';
             return NextResponse.json(
-                { error: data.msg || data.message || data.error || 'Failed to create payment order on Shaymavenue' },
-                { status: res.ok ? 400 : res.status }
+                { error: errorMsg },
+                { status: 400 }
             );
         }
 
