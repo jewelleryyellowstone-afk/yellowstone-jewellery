@@ -10,7 +10,7 @@ import { useDiscount } from '@/lib/hooks/useDiscount';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { formatPrice } from '@/lib/utils/format';
-import { createDocument, updateDocument, getAllDocuments } from '@/lib/supabase/db';
+import { createDocument, updateDocument, queryDocuments } from '@/lib/supabase/db';
 import { recordDiscountUsage } from '@/lib/utils/discount';
 
 // Address Selector Component
@@ -19,7 +19,7 @@ function SavedAddressSelector({ userId, onSelect }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getAllDocuments(`users/${userId}/addresses`).then(({ data }) => {
+        queryDocuments('addresses', [['user_id', userId]]).then(({ data }) => {
             setAddresses(data || []);
             setLoading(false);
         });
@@ -165,10 +165,7 @@ export default function CheckoutPage() {
                     pincode: formData.pincode,
                 },
                 items: cart,
-                subtotal: getSubtotal(), // Base subtotal before taxes/shipping
-                tax_amount: getTaxAmount(),
-                tax_percentage: gstSettings?.enabled ? gstSettings.tax_percentage : 0,
-                shipping_cost: getShippingCost(),
+                subtotal: getSubtotal(),
                 discount: calculateTotal(getTotal()).discount || 0,
                 total: calculateTotal(getTotal()).total,
                 status: 'pending',
@@ -177,24 +174,6 @@ export default function CheckoutPage() {
             };
 
             let { id: orderId, error: createError } = await createDocument('orders', orderData);
-
-            // AUTO-RECOVERY for missing Supabase schema columns
-            if (!orderId) {
-                console.warn('First insert failed (likely due to missing GST columns in Supabase):', createError);
-                
-                // Construct a fallback payload matching the exact older schema
-                const fallbackData = { ...orderData };
-                delete fallbackData.tax_amount;
-                delete fallbackData.tax_percentage;
-                delete fallbackData.shipping_cost;
-                delete fallbackData.discount;
-                delete fallbackData.total;
-                
-                // Retry blindly
-                const retryRes = await createDocument('orders', fallbackData);
-                orderId = retryRes.id;
-                createError = retryRes.error;
-            }
 
             if (!orderId) {
                 alert(`Order creation failed. ${createError || 'Please check inputs or try again.'}`);
@@ -225,58 +204,57 @@ export default function CheckoutPage() {
                 clearCart();
                 router.push(`/order-success?orderId=${orderId}`);
             } else {
-                // Online payment via Devorix Solutions
+                // Online payment via Shaymavenue
                 try {
-                    const finalAmount = getTotal();
-                    if (finalAmount < 100) {
-                        throw new Error("Devorix minimum payment amount is ₹100. Please use Cash on Delivery for smaller orders.");
-                    }
-                    
-                    const response = await fetch('/api/payment/devorix/initiate', {
+                    const finalAmount = calculateTotal(getTotal()).total;
+
+                    // Create Shaymavenue collection order
+                    const payRes = await fetch('/api/payment/shaymavenue/create-order', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             orderId,
-                            amount: getTotal(),
-                            customerName: formData.customerName,
-                            customerEmail: formData.email,
-                            customerMobile: formData.phone,
+                            amount: finalAmount,
+                            customer_mobile: formData.phone,
                         }),
                     });
-                    
-                    const data = await response.json();
-                    
-                    if (data.url) {
-                        clearCart(); // Clear cart to avoid stale states
-                        if (data.type === 'upi_intent') {
-                            router.push(`/payment/upi?intent=${encodeURIComponent(data.url)}&orderId=${orderId}`);
-                        } else {
-                            window.location.href = data.url;
-                        }
-                    } else {
-                        throw new Error(data.error || 'Failed to initialize payment');
+                    const payData = await payRes.json();
+
+                    if (!payRes.ok) {
+                        throw new Error(payData.error || 'Failed to create payment order on Shaymavenue');
                     }
+
+                    const paymentUrl = payData.payment_url;
+                    const intentUrl = payData.intent;
+                    const qrCode = payData.qr_code;
+
+                    setOrderPlaced(true);
+                    clearCart();
+
+                    if (paymentUrl) {
+                        window.location.href = paymentUrl;
+                    } else if (intentUrl || qrCode) {
+                        const params = new URLSearchParams({ orderId });
+                        if (intentUrl) params.set('intent', intentUrl);
+                        if (qrCode) params.set('qr', qrCode);
+                        router.push(`/payment/upi?${params.toString()}`);
+                    } else {
+                        router.push(`/payment/upi?orderId=${orderId}`);
+                    }
+
                 } catch (error) {
-                    console.error('Payment initialization failed:', error);
-                    
+                    console.error('Payment failed:', error);
                     const fallbackToCOD = window.confirm(
-                        `Online payment is currently unavailable (${error.message}).\n\nWould you like to complete this order using Cash on Delivery (COD) instead?`
+                        `Online payment service failed to initialize: ${error.message || ''}\n\nWould you like to complete this order using Cash on Delivery (COD) instead?`
                     );
-                    
                     if (fallbackToCOD) {
                         try {
-                            // Update order to COD
-                            await updateDocument('orders', orderId, {
-                                payment_method: 'cod'
-                            });
-                            
-                            // Trigger Notification
+                            await updateDocument('orders', orderId, { payment_method: 'cod' });
                             await fetch('/api/notifications', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ orderId, type: 'order_placed' }),
                             });
-                            
                             setOrderPlaced(true);
                             clearCart();
                             router.push(`/order-success?orderId=${orderId}`);
@@ -285,8 +263,6 @@ export default function CheckoutPage() {
                             console.error('Failed to update to COD:', updateError);
                             alert('Failed to switch to COD. Please try again.');
                         }
-                    } else {
-                        alert('Order placed but payment failed. Please try again or contact support.');
                     }
                     setLoading(false);
                 }
@@ -402,7 +378,7 @@ export default function CheckoutPage() {
                                             <input type="radio" name="payment" value="online" defaultChecked />
                                             <div>
                                                 <p className="font-medium">Online Payment (UPI / Card / Net Banking)</p>
-                                                <p className="text-sm text-neutral-600">Secured by Devorix Solutions</p>
+                                                <p className="text-sm text-neutral-600">Secured by Shaymavenue</p>
                                             </div>
                                         </label>
                                     </div>

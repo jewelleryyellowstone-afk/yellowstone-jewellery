@@ -13,12 +13,12 @@ function UPIPaymentContent() {
     const [status, setStatus] = useState('pending');
     
     useEffect(() => {
-        if (!intent || !orderId) return;
+        if (!orderId) return;
         
         let interval;
         const checkStatus = async () => {
             try {
-                const res = await fetch('/api/payment/devorix/status', {
+                const res = await fetch('/api/payment/shaymavenue/status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ orderId })
@@ -41,36 +41,44 @@ function UPIPaymentContent() {
         };
 
         // Poll every 5 seconds
+        checkStatus();
         interval = setInterval(checkStatus, 5000);
         return () => clearInterval(interval);
-    }, [intent, orderId, router]);
+    }, [orderId, router]);
 
-    if (!intent || !orderId) {
-        return <div className="p-12 text-center">Invalid Payment Details</div>;
+    if (!orderId) {
+        return <div className="p-12 text-center">Invalid Order Details</div>;
     }
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(intent)}`;
+    const qrParam = searchParams.get('qr');
+    const qrUrl = qrParam || (intent ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(intent)}` : null);
 
     return (
         <div className="container-custom py-12 max-w-md mx-auto">
             <div className="bg-white p-8 rounded-xl shadow-card border border-neutral-200 text-center">
-                <h1 className="text-2xl font-bold mb-2">Scan to Pay</h1>
-                <p className="text-neutral-600 mb-6">Use any UPI app (GPay, PhonePe, Paytm) to scan this QR code.</p>
+                <h1 className="text-2xl font-bold mb-2">Payment Verification</h1>
+                <p className="text-neutral-600 mb-6">
+                    {qrUrl ? 'Use any UPI app (GPay, PhonePe, Paytm) to scan this QR code.' : 'Checking your transaction status with Shaymavenue...'}
+                </p>
                 
-                <div className="flex justify-center mb-6">
-                    <div className="p-4 border-2 border-primary-100 rounded-xl inline-block bg-white shadow-sm">
-                        <Image src={qrUrl} alt="UPI QR Code" width={200} height={200} className="mx-auto" />
+                {qrUrl && (
+                    <div className="flex justify-center mb-6">
+                        <div className="p-4 border-2 border-primary-100 rounded-xl inline-block bg-white shadow-sm">
+                            <Image src={qrUrl} alt="UPI QR Code" width={200} height={200} className="mx-auto" unoptimized />
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="space-y-4">
-                    <Button 
-                        fullWidth 
-                        onClick={() => { window.location.href = intent; }}
-                        className="md:hidden"
-                    >
-                        Open UPI App
-                    </Button>
+                    {intent && (
+                        <Button 
+                            fullWidth 
+                            onClick={() => { window.location.href = intent; }}
+                            className="md:hidden"
+                        >
+                            Open UPI App
+                        </Button>
+                    )}
                     
                     {status === 'pending' && (
                         <div className="flex items-center justify-center gap-2 text-sm text-neutral-500">

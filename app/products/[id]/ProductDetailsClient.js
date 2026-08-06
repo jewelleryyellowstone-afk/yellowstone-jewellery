@@ -35,12 +35,14 @@ export default function ProductDetailsClient({ productId }) {
 
     const handleAddToCart = () => {
         addToCart(product, quantity);
-        alert('Added to cart!');
+        alert('Added to cart successfully!');
     };
 
     const handleBuyNow = () => {
         addToCart(product, quantity);
-        router.push('/checkout');
+        setTimeout(() => {
+            router.push('/checkout');
+        }, 50);
     };
 
     const handleShare = () => {
