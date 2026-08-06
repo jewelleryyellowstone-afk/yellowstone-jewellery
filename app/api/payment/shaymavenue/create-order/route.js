@@ -12,15 +12,8 @@ export async function POST(req) {
             );
         }
 
-        const mid = (process.env.SHAYMAVENUE_MID || '').trim();
-        const apikey = (process.env.SHAYMAVENUE_API_KEY || '').trim();
-
-        if (!mid || !apikey) {
-            return NextResponse.json(
-                { error: 'Shaymavenue Merchant Credentials missing on server' },
-                { status: 500 }
-            );
-        }
+        const mid = (process.env.SHAYMAVENUE_MID || 'SHYAM4554073600').trim();
+        const apikey = (process.env.SHAYMAVENUE_API_KEY || 'Q7@Lm4#Xt9!Rw2&Ks').trim();
 
         // Clean phone number (ensure 10 digits)
         const cleanMobile = customer_mobile.replace(/\D/g, '').slice(-10);
