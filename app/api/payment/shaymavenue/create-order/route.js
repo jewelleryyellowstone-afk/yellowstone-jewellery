@@ -19,8 +19,13 @@ export async function POST(req) {
         // Clean phone number (ensure 10 digits)
         const cleanMobile = customer_mobile.replace(/\D/g, '').slice(-10);
 
-        // Format unique alphanumeric client_txn_id under 30 characters (24 chars max)
-        const client_txn_id = String(orderId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+        // Format unique client_txn_id using ORD + numeric timestamp/hash to satisfy PhonePe gateway requirement
+        let numHash = 0;
+        const strId = String(orderId);
+        for (let i = 0; i < strId.length; i++) {
+            numHash = (numHash * 31 + strId.charCodeAt(i)) % 10000;
+        }
+        const client_txn_id = `ORD${Date.now()}${Math.abs(numHash)}`;
 
         // Store client_txn_id on order record for lookup
         try {

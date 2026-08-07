@@ -15,7 +15,15 @@ export async function POST(req) {
         const mid = (process.env.SHAYMAVENUE_MID || 'SHYAM4554073600').trim();
         const apikey = (process.env.SHAYMAVENUE_API_KEY || 'Q7@Lm4#Xt9!Rw2&Ks').trim();
 
-        const clientTxnId = String(orderId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+        let clientTxnId = orderId;
+        try {
+            const { data: orderDoc } = await getDocument('orders', orderId);
+            if (orderDoc && orderDoc.payment_id) {
+                clientTxnId = orderDoc.payment_id;
+            }
+        } catch (dbReadErr) {
+            console.error('Failed to read payment_id from order:', dbReadErr);
+        }
 
         const payload = {
             mid,
