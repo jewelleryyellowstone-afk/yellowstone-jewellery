@@ -19,7 +19,7 @@ export async function POST(req) {
             mid,
             apikey,
             client_txn_id: String(orderId),
-            route: 'collection',
+            route: 1, // Integer: 1 for Payin / Collection status check as per specification
         };
 
         const res = await fetch('https://shaymavenue.in/api/v1/check_status', {
@@ -37,9 +37,9 @@ export async function POST(req) {
             console.error('Failed to parse Shaymavenue check_status JSON:', jsonErr);
         }
 
-        const statusStr = (data.status || data.TXN_Status || data.result || data.statuscode || '').toString().toLowerCase();
+        const txnStatus = (data.data?.status || data.TXN_Status || data.status || '').toString().toUpperCase();
 
-        if (statusStr === 'success' || statusStr === 'successful' || statusStr === 'true') {
+        if (data.status === true || txnStatus === 'SUCCESS' || txnStatus === 'SUCCESSFUL') {
             try {
                 await updateDocument('orders', orderId, {
                     payment_status: 'paid',
@@ -50,7 +50,7 @@ export async function POST(req) {
                 console.error('DB Order Update Error:', dbErr);
             }
             return NextResponse.json({ status: 'SUCCESS', data });
-        } else if (statusStr === 'failed' || statusStr === 'failure' || statusStr === 'false') {
+        } else if (txnStatus === 'FAILED' || txnStatus === 'FAILURE' || (data.status === false && data.msg?.toLowerCase().includes('failed'))) {
             try {
                 await updateDocument('orders', orderId, {
                     payment_status: 'failed',
