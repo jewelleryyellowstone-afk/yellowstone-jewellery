@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { updateDocument } from '@/lib/supabase/db';
+import { updateDocument, queryDocuments } from '@/lib/supabase/db';
 
 export async function POST(req) {
     try {
@@ -15,8 +15,18 @@ export async function POST(req) {
             const utr = txn.UTR || txn.utr || '';
 
             if (clientTxnId) {
+                let targetOrderId = clientTxnId;
+                try {
+                    const { data: matchedOrders } = await queryDocuments('orders', [['payment_id', clientTxnId]]);
+                    if (matchedOrders && matchedOrders.length > 0) {
+                        targetOrderId = matchedOrders[0].id;
+                    }
+                } catch (findErr) {
+                    console.error('Failed to lookup order by payment_id:', findErr);
+                }
+
                 if (status === 'success') {
-                    await updateDocument('orders', clientTxnId, {
+                    await updateDocument('orders', targetOrderId, {
                         payment_status: 'paid',
                         status: 'processing',
                         transaction_id: utr || clientTxnId,
@@ -28,13 +38,13 @@ export async function POST(req) {
                         await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/notifications`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ orderId: clientTxnId, type: 'order_placed' }),
+                            body: JSON.stringify({ orderId: targetOrderId, type: 'order_placed' }),
                         });
                     } catch (notifyErr) {
                         console.error('Webhook notification trigger error:', notifyErr);
                     }
                 } else if (status === 'failed') {
-                    await updateDocument('orders', clientTxnId, {
+                    await updateDocument('orders', targetOrderId, {
                         payment_status: 'failed',
                         updated_at: new Date().toISOString(),
                     });

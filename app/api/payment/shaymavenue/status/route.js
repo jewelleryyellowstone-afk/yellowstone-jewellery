@@ -15,10 +15,12 @@ export async function POST(req) {
         const mid = (process.env.SHAYMAVENUE_MID || 'SHYAM4554073600').trim();
         const apikey = (process.env.SHAYMAVENUE_API_KEY || 'Q7@Lm4#Xt9!Rw2&Ks').trim();
 
+        const clientTxnId = String(orderId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+
         const payload = {
             mid,
             apikey,
-            client_txn_id: String(orderId),
+            client_txn_id: clientTxnId,
             route: 1, // Integer: 1 for Payin / Collection status check as per specification
         };
 

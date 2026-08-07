@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { updateDocument } from '@/lib/supabase/db';
 
 export async function POST(req) {
     try {
@@ -18,10 +19,20 @@ export async function POST(req) {
         // Clean phone number (ensure 10 digits)
         const cleanMobile = customer_mobile.replace(/\D/g, '').slice(-10);
 
+        // Format unique alphanumeric client_txn_id under 30 characters (24 chars max)
+        const client_txn_id = String(orderId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+
+        // Store client_txn_id on order record for lookup
+        try {
+            await updateDocument('orders', orderId, { payment_id: client_txn_id });
+        } catch (dbErr) {
+            console.error('Failed to attach payment_id to order:', dbErr);
+        }
+
         const payload = {
             mid,
             apikey,
-            client_txn_id: String(orderId),
+            client_txn_id,
             amount: Number(amount),
             customer_mobile: cleanMobile || '9999999999',
         };
